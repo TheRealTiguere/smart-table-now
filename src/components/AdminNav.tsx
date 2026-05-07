@@ -30,16 +30,18 @@ export function AdminNav() {
           </span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className="rounded-full px-3.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-              activeProps={{ className: "rounded-full px-3.5 py-1.5 text-[13px] font-medium text-foreground bg-secondary" }}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {links
+            .filter((l) => me?.role !== "kitchen" || l.to === "/cuisine")
+            .map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="rounded-full px-3.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                activeProps={{ className: "rounded-full px-3.5 py-1.5 text-[13px] font-medium text-foreground bg-secondary" }}
+              >
+                {l.label}
+              </Link>
+            ))}
           {me?.role === "super_admin" && (
             <Link
               to="/super-admin"
