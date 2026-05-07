@@ -290,20 +290,19 @@ function Dashboard() {
               <h3 className="font-display text-2xl font-semibold tracking-tight">QR codes des tables</h3>
               <button onClick={() => setQrOpen(false)} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
             </div>
-            <p className="mt-1 text-[13px] text-muted-foreground">Imprimez et collez sur chaque table.</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">Le client scanne, le menu de sa table s'ouvre.</p>
             <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
-              {TABLE_IDS.map((id) => (
-                <div key={id} className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-4">
-                  <div
-                    className="h-20 w-20 rounded-lg"
-                    style={{
-                      background:
-                        "repeating-conic-gradient(var(--foreground) 0% 25%, var(--card) 0% 50%) 50% / 8px 8px",
-                    }}
-                  />
-                  <span className="font-display text-[15px] font-semibold">{id}</span>
-                </div>
-              ))}
+              {TABLE_IDS.map((id) => {
+                const url = typeof window !== "undefined" ? `${window.location.origin}/menu?table=${id}` : `/menu?table=${id}`;
+                return (
+                  <div key={id} className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-4">
+                    <div className="rounded-lg bg-white p-2">
+                      <QRCodeSVG value={url} size={80} level="M" />
+                    </div>
+                    <span className="font-display text-[15px] font-semibold">{id}</span>
+                  </div>
+                );
+              })}
             </div>
             <button
               onClick={() => {
