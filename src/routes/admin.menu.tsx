@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
-import { useState, useRef, type ChangeEvent } from "react";
+import { useState, useRef, useMemo, type ChangeEvent } from "react";
 import {
   useConfig,
   useConfigHydrated,
