@@ -1,55 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MockupNav } from "@/components/MockupNav";
 import { Clock } from "lucide-react";
+import { useStore, timeAgo, type OrderStatus } from "@/lib/store";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/cuisine")({
   component: KitchenView,
   head: () => ({ meta: [{ title: "Cuisine" }] }),
 });
 
-type Order = {
-  id: string;
-  table: string;
-  time: string;
-  status: "new" | "cooking" | "ready";
-  items: { qty: number; name: string; note?: string }[];
+const COLS: { key: OrderStatus; title: string; sub: string }[] = [
+  { key: "new", title: "Nouvelles", sub: "À démarrer" },
+  { key: "cooking", title: "En préparation", sub: "En cours" },
+  { key: "ready", title: "Prêtes", sub: "À servir" },
+];
+
+const ACTION: Record<OrderStatus, string> = {
+  new: "Démarrer",
+  cooking: "Marquer prête",
+  ready: "Servie",
+  served: "Servie",
 };
 
-const ORDERS: Order[] = [
-  { id: "142", table: "T7", time: "à l'instant", status: "new",
-    items: [
-      { qty: 2, name: "Tagliatelles truffe" },
-      { qty: 1, name: "Burrata di Puglia", note: "sans basilic" },
-      { qty: 2, name: "Tiramisu" },
-    ] },
-  { id: "141", table: "T3", time: "il y a 2 min", status: "new",
-    items: [
-      { qty: 1, name: "Risotto Milanese" },
-      { qty: 1, name: "Arrabbiata", note: "extra piment" },
-    ] },
-  { id: "140", table: "T12", time: "il y a 5 min", status: "cooking",
-    items: [
-      { qty: 4, name: "Vitello tonnato" },
-      { qty: 4, name: "Tagliatelles truffe" },
-    ] },
-  { id: "139", table: "T1", time: "il y a 8 min", status: "cooking",
-    items: [
-      { qty: 1, name: "Burrata di Puglia" },
-      { qty: 2, name: "Risotto Milanese" },
-    ] },
-  { id: "138", table: "T9", time: "il y a 12 min", status: "ready",
-    items: [{ qty: 3, name: "Tiramisu" }] },
-];
-
-const COLS = [
-  { key: "new" as const, title: "Nouvelles", sub: "À démarrer" },
-  { key: "cooking" as const, title: "En préparation", sub: "En cours" },
-  { key: "ready" as const, title: "Prêtes", sub: "À servir" },
-];
-
-const ACTION = { new: "Démarrer", cooking: "Marquer prête", ready: "Servie" } as const;
-
 function KitchenView() {
+  const orders = useStore((s) => s.orders.filter((o) => o.status !== "served"));
+  const advance = useStore((s) => s.advanceOrder);
+  const [, force] = useState(0);
+
+  // Refresh "time ago" every 20s
+  useEffect(() => {
+    const i = setInterval(() => force((n) => n + 1), 20_000);
+    return () => clearInterval(i);
+  }, []);
+
+  const handle = (id: string, status: OrderStatus, table: string) => {
+    advance(id);
+    const next = status === "new" ? "préparation" : status === "cooking" ? "prête" : "servie";
+    toast.success(`Commande #${id} · ${table}`, { description: `Statut : ${next}` });
+  };
+
   return (
     <div className="min-h-screen bg-surface">
       <MockupNav />
@@ -65,13 +55,13 @@ function KitchenView() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
-            En direct · 5 commandes
+            En direct · {orders.length} commandes
           </div>
         </div>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-3">
           {COLS.map((col) => {
-            const list = ORDERS.filter((o) => o.status === col.key);
+            const list = orders.filter((o) => o.status === col.key).sort((a, b) => a.createdAt - b.createdAt);
             return (
               <div key={col.key}>
                 <div className="mb-4 flex items-baseline justify-between px-1">
@@ -90,7 +80,7 @@ function KitchenView() {
                           <p className="text-[11px] text-muted-foreground">#{o.id}</p>
                         </div>
                         <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Clock className="h-3 w-3" /> {o.time}
+                          <Clock className="h-3 w-3" /> {timeAgo(o.createdAt)}
                         </span>
                       </header>
                       <ul className="mt-4 space-y-1.5">
@@ -102,9 +92,12 @@ function KitchenView() {
                           </li>
                         ))}
                       </ul>
-                      <button className={`mt-4 w-full rounded-full py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90 ${
-                        o.status === "ready" ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
-                      }`}>
+                      <button
+                        onClick={() => handle(o.id, o.status, o.table)}
+                        className={`mt-4 w-full rounded-full py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90 ${
+                          o.status === "ready" ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
+                        }`}
+                      >
                         {ACTION[o.status]}
                       </button>
                     </article>
