@@ -859,6 +859,105 @@ function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose:
           Disponible
         </label>
 
+        <div className="mt-5 rounded-2xl bg-surface p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[12px] font-medium uppercase tracking-wider text-muted-foreground">Plages horaires</p>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Si aucune plage n'est définie, la formule est disponible toute la journée.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => addSchedule({ days: [1, 2, 3, 4, 5], start: "12:00", end: "14:30" })}
+                className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+              >
+                + Midi
+              </button>
+              <button
+                type="button"
+                onClick={() => addSchedule({ days: [1, 2, 3, 4, 5, 6], start: "19:00", end: "22:30" })}
+                className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+              >
+                + Soir
+              </button>
+              <button
+                type="button"
+                onClick={() => addSchedule({ days: [1, 2, 3, 4, 5], start: "17:00", end: "19:00" })}
+                className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+              >
+                + Happy hour
+              </button>
+              <button
+                type="button"
+                onClick={() => addSchedule()}
+                className="inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[11px] font-medium text-background hover:opacity-90"
+              >
+                <Plus className="h-3 w-3" /> Ajouter
+              </button>
+            </div>
+          </div>
+
+          {schedules.length === 0 ? (
+            <p className="mt-3 text-[12px] italic text-muted-foreground">Aucune plage — disponible en permanence.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {schedules.map((s, i) => (
+                <li key={i} className="rounded-xl bg-card p-3 ring-1 ring-border">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {DAY_LABELS.map((label, day) => {
+                      const active = s.days.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleScheduleDay(i, day)}
+                          className={
+                            "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition " +
+                            (active
+                              ? "bg-foreground text-background ring-foreground"
+                              : "bg-surface text-muted-foreground ring-border hover:text-foreground")
+                          }
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-[12px]">
+                      De
+                      <input
+                        type="time"
+                        value={s.start}
+                        onChange={(e) => patchSchedule(i, { start: e.target.value })}
+                        className="rounded-lg bg-surface px-2 py-1 text-[13px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 text-[12px]">
+                      à
+                      <input
+                        type="time"
+                        value={s.end}
+                        onChange={(e) => patchSchedule(i, { end: e.target.value })}
+                        className="rounded-lg bg-surface px-2 py-1 text-[13px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeSchedule(i)}
+                      className="ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Trash2 className="h-3 w-3" /> Retirer
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <button
           onClick={save}
           className="mt-6 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-foreground py-3.5 text-[14px] font-medium text-background hover:opacity-90"
