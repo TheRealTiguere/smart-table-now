@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check } from "lucide-react";
+import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check, Image as ImageIcon, Info } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useConfig, useConfigHydrated, ALLERGEN_LABELS } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
@@ -11,69 +12,100 @@ export const Route = createFileRoute("/menu")({
   validateSearch: (s: Record<string, unknown>) => ({ table: (s.table as string) || undefined }),
 });
 
-type Item = { id: string; name: string; desc: string; price: number; tags?: ("veggie" | "spicy")[]; category: string; available?: boolean };
-
-const ITEMS: Item[] = [
-  { id: "1", name: "Burrata di Puglia", desc: "Tomates anciennes, basilic, huile AOP", price: 14, tags: ["veggie"], category: "Entrées" },
-  { id: "2", name: "Vitello tonnato", desc: "Veau, sauce thon-câpres", price: 16, category: "Entrées" },
-  { id: "3", name: "Tagliatelles truffe", desc: "Pâtes fraîches, truffe noire, parmesan 24 mois", price: 22, category: "Plats" },
-  { id: "4", name: "Risotto Milanese", desc: "Carnaroli, safran, moelle", price: 19, tags: ["veggie"], category: "Plats" },
-  { id: "5", name: "Arrabbiata piccante", desc: "Tomate, ail, piment de Calabre", price: 15, tags: ["spicy", "veggie"], category: "Plats", available: false },
-  { id: "6", name: "Tiramisu maison", desc: "Mascarpone, café, cacao", price: 8, category: "Desserts" },
-  { id: "7", name: "Panna cotta", desc: "Crème vanille, coulis fruits rouges", price: 8, tags: ["veggie"], category: "Desserts" },
-];
-
-const CATS = ["Tous", "Entrées", "Plats", "Desserts"];
+type CartLine = { kind: "dish" | "formula"; id: string; qty: number };
 
 function ClientMenu() {
   const mounted = useMounted();
+  const cfgReady = useConfigHydrated();
   const search = Route.useSearch();
+
   const currentTable = useStore((s) => s.currentTable);
   const setCurrentTable = useStore((s) => s.setCurrentTable);
   const addOrder = useStore((s) => s.addOrder);
   const allOrders = useStore((s) => s.orders);
-  const myOrders = allOrders.filter((o) => o.table === (search.table || currentTable) && o.status !== "served");
+
+  const { restaurantName, logo, categories, dishes, formulas } = useConfig();
 
   const table = search.table || currentTable;
+  const myOrders = allOrders.filter((o) => o.table === table && o.status !== "served");
+
   useEffect(() => {
     if (search.table && search.table !== currentTable) setCurrentTable(search.table);
   }, [search.table, currentTable, setCurrentTable]);
 
-  const [cat, setCat] = useState("Tous");
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const sortedCats = useMemo(() => [...categories].sort((a, b) => a.order - b.order), [categories]);
+  const availableFormulas = useMemo(() => formulas.filter((f) => f.available), [formulas]);
+  const TABS = useMemo(
+    () => [
+      "Tous",
+      ...(availableFormulas.length > 0 ? ["Formules"] : []),
+      ...sortedCats.map((c) => c.name),
+    ],
+    [sortedCats, availableFormulas.length],
+  );
+
+  const [tab, setTab] = useState("Tous");
+  const [cart, setCart] = useState<CartLine[]>([]);
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
+  const [info, setInfo] = useState<string | null>(null); // dish id
 
-  const filtered = cat === "Tous" ? ITEMS : ITEMS.filter((i) => i.category === cat);
-  const total = useMemo(
-    () => Object.entries(cart).reduce((s, [id, q]) => s + (ITEMS.find((i) => i.id === id)?.price ?? 0) * q, 0),
-    [cart],
-  );
-  const count = Object.values(cart).reduce((a, b) => a + b, 0);
+  useEffect(() => {
+    if (!TABS.includes(tab)) setTab("Tous");
+  }, [TABS, tab]);
 
-  const add = (id: string) => {
-    const it = ITEMS.find((i) => i.id === id);
-    if (it && it.available === false) {
-      toast.error("Plat indisponible ce soir");
-      return;
+  const addLine = (kind: CartLine["kind"], id: string) => {
+    if (kind === "dish") {
+      const d = dishes.find((x) => x.id === id);
+      if (!d || !d.available) return toast.error("Indisponible");
+    } else {
+      const f = formulas.find((x) => x.id === id);
+      if (!f || !f.available) return toast.error("Indisponible");
     }
-    setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
-  };
-  const sub = (id: string) =>
     setCart((c) => {
-      const n = (c[id] ?? 0) - 1;
-      const { [id]: _removed, ...rest } = c;
-      return n <= 0 ? rest : { ...c, [id]: n };
+      const i = c.findIndex((l) => l.kind === kind && l.id === id);
+      if (i >= 0) {
+        const next = [...c];
+        next[i] = { ...next[i], qty: next[i].qty + 1 };
+        return next;
+      }
+      return [...c, { kind, id, qty: 1 }];
     });
+  };
+
+  const subLine = (kind: CartLine["kind"], id: string) => {
+    setCart((c) =>
+      c
+        .map((l) => (l.kind === kind && l.id === id ? { ...l, qty: l.qty - 1 } : l))
+        .filter((l) => l.qty > 0),
+    );
+  };
+
+  const lineQty = (kind: CartLine["kind"], id: string) =>
+    cart.find((l) => l.kind === kind && l.id === id)?.qty ?? 0;
+
+  const linePrice = (l: CartLine) => {
+    if (l.kind === "dish") return dishes.find((d) => d.id === l.id)?.price ?? 0;
+    return formulas.find((f) => f.id === l.id)?.price ?? 0;
+  };
+  const lineName = (l: CartLine) => {
+    if (l.kind === "dish") return dishes.find((d) => d.id === l.id)?.name ?? "";
+    return formulas.find((f) => f.id === l.id)?.name ?? "";
+  };
+
+  const total = useMemo(() => cart.reduce((s, l) => s + linePrice(l) * l.qty, 0), [cart, dishes, formulas]);
+  const count = cart.reduce((a, b) => a + b.qty, 0);
 
   const send = () => {
     if (count === 0) return;
-    const items = Object.entries(cart).map(([id, qty]) => {
-      const it = ITEMS.find((i) => i.id === id)!;
-      return { id, name: it.name, price: it.price, qty };
-    });
+    const items = cart.map((l) => ({
+      id: `${l.kind}-${l.id}`,
+      name: l.kind === "formula" ? `Formule · ${lineName(l)}` : lineName(l),
+      price: linePrice(l),
+      qty: l.qty,
+    }));
     const orderId = addOrder({ table, items });
-    setCart({});
+    setCart([]);
     setOpen(false);
     setSent(true);
     toast.success(`Commande #${orderId} envoyée en cuisine`, {
@@ -82,18 +114,27 @@ function ClientMenu() {
     setTimeout(() => setSent(false), 2500);
   };
 
-  if (!mounted) {
+  if (!mounted || !cfgReady) {
     return <div className="min-h-screen bg-background pb-32" />;
   }
 
+  const showFormulas = (tab === "Tous" || tab === "Formules") && availableFormulas.length > 0;
+  const visibleCats = tab === "Tous" || tab === "Formules" ? sortedCats : sortedCats.filter((c) => c.name === tab);
+
+  const infoDish = info ? dishes.find((d) => d.id === info) ?? null : null;
+
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Brand bar minimal */}
+      {/* Brand bar */}
       <div className="border-b border-border/60">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-[6px] bg-foreground" />
-            <span className="font-display text-[15px] font-semibold tracking-tight">La Trattoria</span>
+            {logo ? (
+              <img src={logo} alt="" className="h-7 w-7 rounded-[6px] object-cover" />
+            ) : (
+              <div className="h-6 w-6 rounded-[6px] bg-foreground" />
+            )}
+            <span className="font-display text-[15px] font-semibold tracking-tight">{restaurantName}</span>
           </div>
           <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">Table {table.replace("T", "")}</span>
         </div>
@@ -123,15 +164,15 @@ function ClientMenu() {
         )}
       </div>
 
-      {/* Categories */}
+      {/* Tabs */}
       <div className="sticky top-0 z-30 glass border-b border-border/60">
         <div className="mx-auto flex max-w-2xl gap-1.5 overflow-x-auto px-6 py-3">
-          {CATS.map((c) => (
+          {TABS.map((c) => (
             <button
               key={c}
-              onClick={() => setCat(c)}
+              onClick={() => setTab(c)}
               className={`whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
-                cat === c ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary"
+                tab === c ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               {c}
@@ -140,63 +181,131 @@ function ClientMenu() {
         </div>
       </div>
 
-      {/* Items */}
-      <main className="mx-auto max-w-2xl px-6 py-6">
-        <ul className="divide-y divide-border">
-          {filtered.map((item) => {
-            const unavailable = item.available === false;
-            return (
-              <li key={item.id} className={`flex gap-4 py-5 ${unavailable ? "opacity-50" : ""}`}>
-                <div className="flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="font-display text-[18px] font-semibold tracking-tight">{item.name}</h3>
-                    <span className="text-[15px] font-medium tabular-nums text-muted-foreground">{item.price}€</span>
-                  </div>
-                  <p className="mt-1 text-[14px] text-muted-foreground">{item.desc}</p>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex gap-1.5">
-                      {item.tags?.includes("veggie") && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
-                          <Leaf className="h-3 w-3" /> Veggie
-                        </span>
-                      )}
-                      {item.tags?.includes("spicy") && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-destructive">
-                          <Flame className="h-3 w-3" /> Piquant
-                        </span>
-                      )}
-                      {unavailable && (
-                        <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
-                          Épuisé
-                        </span>
+      <main className="mx-auto max-w-2xl px-6 py-6 space-y-10">
+        {/* Formulas */}
+        {showFormulas && (
+          <section>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Formules</h2>
+            <ul className="mt-3 space-y-3">
+              {availableFormulas.map((f) => {
+                const q = lineQty("formula", f.id);
+                const items = f.dishIds.map((id) => dishes.find((d) => d.id === id)?.name).filter(Boolean) as string[];
+                return (
+                  <li key={f.id} className="rounded-2xl bg-surface p-4">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="font-display text-[17px] font-semibold tracking-tight">{f.name}</h3>
+                      <span className="text-[15px] font-medium tabular-nums">{f.price}€</span>
+                    </div>
+                    {f.desc && <p className="mt-1 text-[13px] text-muted-foreground">{f.desc}</p>}
+                    {items.length > 0 && (
+                      <p className="mt-2 text-[12px] text-muted-foreground">{items.join(" · ")}</p>
+                    )}
+                    <div className="mt-3 flex justify-end">
+                      {q > 0 ? (
+                        <Stepper
+                          value={q}
+                          onAdd={() => addLine("formula", f.id)}
+                          onSub={() => subLine("formula", f.id)}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => addLine("formula", f.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
                       )}
                     </div>
-                    {cart[item.id] ? (
-                      <div className="inline-flex items-center gap-3 rounded-full bg-foreground px-1 py-1 text-background">
-                        <button onClick={() => sub(item.id)} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-background/10">
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="min-w-4 text-center text-[13px] font-medium tabular-nums">{cart[item.id]}</span>
-                        <button onClick={() => add(item.id)} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-background/10">
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => add(item.id)}
-                        disabled={unavailable}
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </li>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* Categories */}
+        {tab !== "Formules" &&
+          visibleCats.map((cat) => {
+            const list = dishes.filter((d) => d.categoryId === cat.id);
+            if (list.length === 0) return null;
+            return (
+              <section key={cat.id}>
+                <h2 className="font-display text-2xl font-semibold tracking-tight">{cat.name}</h2>
+                <ul className="mt-2 divide-y divide-border">
+                  {list.map((item) => {
+                    const unavailable = !item.available;
+                    const q = lineQty("dish", item.id);
+                    const allAllergens = [
+                      ...item.allergens.map((a) => ALLERGEN_LABELS[a]),
+                      ...item.customAllergens,
+                    ];
+                    return (
+                      <li key={item.id} className={`flex gap-4 py-5 ${unavailable ? "opacity-50" : ""}`}>
+                        {item.photo !== undefined && (
+                          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface">
+                            {item.photo ? (
+                              <img src={item.photo} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                <ImageIcon className="h-5 w-5" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <h3 className="font-display text-[18px] font-semibold tracking-tight">{item.name}</h3>
+                            <span className="text-[15px] font-medium tabular-nums text-muted-foreground">{item.price}€</span>
+                          </div>
+                          {item.desc && <p className="mt-1 text-[14px] text-muted-foreground">{item.desc}</p>}
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            <div className="flex flex-wrap gap-1.5">
+                              {item.tags.includes("veggie") && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+                                  <Leaf className="h-3 w-3" /> Veggie
+                                </span>
+                              )}
+                              {item.tags.includes("spicy") && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-destructive">
+                                  <Flame className="h-3 w-3" /> Piquant
+                                </span>
+                              )}
+                              {allAllergens.length > 0 && (
+                                <button
+                                  onClick={() => setInfo(item.id)}
+                                  className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary/80"
+                                >
+                                  <Info className="h-3 w-3" /> Allergènes
+                                </button>
+                              )}
+                              {unavailable && (
+                                <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">Épuisé</span>
+                              )}
+                            </div>
+                            {q > 0 ? (
+                              <Stepper
+                                value={q}
+                                onAdd={() => addLine("dish", item.id)}
+                                onSub={() => subLine("dish", item.id)}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => addLine("dish", item.id)}
+                                disabled={unavailable}
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             );
           })}
-        </ul>
-
       </main>
 
       {/* Cart bar */}
@@ -234,22 +343,19 @@ function ClientMenu() {
               </button>
             </div>
             <ul className="mt-5 divide-y divide-border">
-              {Object.entries(cart).map(([id, q]) => {
-                const it = ITEMS.find((i) => i.id === id)!;
-                return (
-                  <li key={id} className="flex items-center justify-between py-3 text-[14px]">
-                    <div className="flex items-center gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-1 py-1">
-                        <button onClick={() => sub(id)} className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-background"><Minus className="h-3 w-3" /></button>
-                        <span className="min-w-3 text-center text-[12px] font-medium tabular-nums">{q}</span>
-                        <button onClick={() => add(id)} className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-background"><Plus className="h-3 w-3" /></button>
-                      </div>
-                      <span>{it.name}</span>
+              {cart.map((l) => (
+                <li key={`${l.kind}-${l.id}`} className="flex items-center justify-between py-3 text-[14px]">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-1 py-1">
+                      <button onClick={() => subLine(l.kind, l.id)} className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-background"><Minus className="h-3 w-3" /></button>
+                      <span className="min-w-3 text-center text-[12px] font-medium tabular-nums">{l.qty}</span>
+                      <button onClick={() => addLine(l.kind, l.id)} className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-background"><Plus className="h-3 w-3" /></button>
                     </div>
-                    <span className="font-medium tabular-nums">{it.price * q}€</span>
-                  </li>
-                );
-              })}
+                    <span>{l.kind === "formula" ? `Formule · ${lineName(l)}` : lineName(l)}</span>
+                  </div>
+                  <span className="font-medium tabular-nums">{linePrice(l) * l.qty}€</span>
+                </li>
+              ))}
             </ul>
             <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
               <span className="text-[14px] text-muted-foreground">Total</span>
@@ -262,6 +368,43 @@ function ClientMenu() {
           </div>
         </div>
       )}
+
+      {/* Allergens sheet */}
+      {infoDish && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 backdrop-blur-sm sm:items-center" onClick={() => setInfo(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-[2rem] bg-card p-6 shadow-pop sm:rounded-3xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-xl font-semibold tracking-tight">{infoDish.name}</h3>
+              <button onClick={() => setInfo(null)} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-1 text-[12px] font-medium uppercase tracking-wider text-muted-foreground">Allergènes</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {infoDish.allergens.map((a) => (
+                <span key={a} className="rounded-full bg-secondary px-2.5 py-1 text-[12px]">{ALLERGEN_LABELS[a]}</span>
+              ))}
+              {infoDish.customAllergens.map((a) => (
+                <span key={a} className="rounded-full bg-secondary px-2.5 py-1 text-[12px]">{a}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stepper({ value, onAdd, onSub }: { value: number; onAdd: () => void; onSub: () => void }) {
+  return (
+    <div className="inline-flex items-center gap-3 rounded-full bg-foreground px-1 py-1 text-background">
+      <button onClick={onSub} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-background/10">
+        <Minus className="h-3.5 w-3.5" />
+      </button>
+      <span className="min-w-4 text-center text-[13px] font-medium tabular-nums">{value}</span>
+      <button onClick={onAdd} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-background/10">
+        <Plus className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
