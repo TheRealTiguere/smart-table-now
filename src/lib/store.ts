@@ -13,6 +13,10 @@ export type Order = {
   createdAt: number;
   total: number;
   paid?: boolean;
+  paidAt?: number;
+  paymentMethod?: "cash" | "card" | "other";
+  customerEmail?: string;
+  receiptNumber?: string;
 };
 
 export type TableStatus = "free" | "occupied" | "cooking" | "ready";
