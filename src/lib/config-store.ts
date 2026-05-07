@@ -56,6 +56,13 @@ export type Category = {
   order: number;
 };
 
+export type Schedule = {
+  // 0 = Sunday ... 6 = Saturday
+  days: number[];
+  start: string; // "HH:MM"
+  end: string;   // "HH:MM"
+};
+
 export type Formula = {
   id: string;
   name: string;
@@ -63,17 +70,21 @@ export type Formula = {
   price: number;
   dishIds: string[]; // included dishes
   available: boolean;
+  // If empty/undefined => available all the time
+  schedules?: Schedule[];
 };
 
 type ConfigState = {
   restaurantName: string;
   logo?: string; // dataURL
+  timezone: string; // IANA tz, e.g. "Europe/Paris"
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
 
   setRestaurantName: (n: string) => void;
   setLogo: (logo?: string) => void;
+  setTimezone: (tz: string) => void;
 
   addCategory: (name: string) => void;
   renameCategory: (id: string, name: string) => void;
@@ -109,7 +120,15 @@ const seedDishes: Dish[] = [
 ];
 
 const seedFormulas: Formula[] = [
-  { id: "f1", name: "Menu du midi", desc: "Entrée + Plat ou Plat + Dessert", price: 24, dishIds: ["d1", "d4"], available: true },
+  {
+    id: "f1",
+    name: "Menu du midi",
+    desc: "Entrée + Plat ou Plat + Dessert",
+    price: 24,
+    dishIds: ["d1", "d4"],
+    available: true,
+    schedules: [{ days: [1, 2, 3, 4, 5], start: "12:00", end: "14:30" }],
+  },
 ];
 
 export const useConfig = create<ConfigState>()(
@@ -117,12 +136,14 @@ export const useConfig = create<ConfigState>()(
     (set) => ({
       restaurantName: "La Trattoria",
       logo: undefined,
+      timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "Europe/Paris",
       categories: seedCategories,
       dishes: seedDishes,
       formulas: seedFormulas,
 
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
+      setTimezone: (tz) => set({ timezone: tz }),
 
       addCategory: (name) =>
         set((s) => ({
@@ -184,3 +205,35 @@ export function useConfigHydrated() {
   }, []);
   return hydrated;
 }
+
+export function isFormulaActiveNow(f: Formula, timezone: string, now: Date = new Date()): boolean {
+  if (!f.available) return false;
+  if (!f.schedules || f.schedules.length === 0) return true;
+  // Get day-of-week and HH:MM in target timezone
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(now);
+  const wk = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
+  const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const day = dayMap[wk] ?? 0;
+  const minutes = parseInt(hh, 10) * 60 + parseInt(mm, 10);
+  return f.schedules.some((s) => {
+    if (!s.days.includes(day)) return false;
+    const [sh, sm] = s.start.split(":").map(Number);
+    const [eh, em] = s.end.split(":").map(Number);
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    if (end >= start) return minutes >= start && minutes <= end;
+    // overnight (e.g., 22:00 -> 02:00)
+    return minutes >= start || minutes <= end;
+  });
+}
+
+export const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];

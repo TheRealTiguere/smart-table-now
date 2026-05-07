@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
-import { useState, useRef, type ChangeEvent } from "react";
+import { useState, useRef, useMemo, type ChangeEvent } from "react";
 import {
   useConfig,
   useConfigHydrated,
@@ -10,6 +10,8 @@ import {
   type Dish,
   type Formula,
   type Tag,
+  type Schedule,
+  DAY_LABELS,
 } from "@/lib/config-store";
 import { Plus, Trash2, Image as ImageIcon, X, ArrowUp, ArrowDown, Pencil, Check, Leaf, Flame, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -112,7 +114,15 @@ function MenuAdmin() {
 /* ---------------- Identité ---------------- */
 
 function IdentiteTab() {
-  const { restaurantName, logo, setRestaurantName, setLogo } = useConfig();
+  const { restaurantName, logo, setRestaurantName, setLogo, timezone, setTimezone } = useConfig();
+  const tzList = useMemo(() => {
+    try {
+      const tzs: string[] = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
+      return tzs.length ? tzs : ["Europe/Paris", "Europe/London", "America/New_York", "America/Los_Angeles", "UTC"];
+    } catch {
+      return ["Europe/Paris", "Europe/London", "America/New_York", "America/Los_Angeles", "UTC"];
+    }
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +179,22 @@ function IdentiteTab() {
           maxLength={60}
           className="mt-5 w-full rounded-2xl bg-card px-4 py-3 text-[15px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
         />
+      </div>
+
+      <div className="rounded-3xl bg-surface p-6 md:col-span-2">
+        <h3 className="font-display text-xl font-semibold tracking-tight">Fuseau horaire</h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Utilisé pour les plages horaires des formules (midi, soir, happy hour…).
+        </p>
+        <select
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          className="mt-5 w-full rounded-2xl bg-card px-4 py-3 text-[15px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+        >
+          {tzList.map((tz) => (
+            <option key={tz} value={tz}>{tz}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
@@ -707,7 +733,7 @@ function FormulasTab() {
 function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose: () => void }) {
   const { dishes, categories, addFormula, updateFormula } = useConfig();
   const [form, setForm] = useState<Omit<Formula, "id">>(
-    formula ?? { name: "", desc: "", price: 0, dishIds: [], available: true },
+    formula ?? { name: "", desc: "", price: 0, dishIds: [], available: true, schedules: [] },
   );
 
   const toggleDish = (id: string) =>
@@ -715,6 +741,22 @@ function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose:
       ...p,
       dishIds: p.dishIds.includes(id) ? p.dishIds.filter((x) => x !== id) : [...p.dishIds, id],
     }));
+
+  const schedules = form.schedules ?? [];
+  const updateSchedules = (next: Schedule[]) => setForm((p) => ({ ...p, schedules: next }));
+  const addSchedule = (preset?: Partial<Schedule>) =>
+    updateSchedules([
+      ...schedules,
+      { days: preset?.days ?? [1, 2, 3, 4, 5], start: preset?.start ?? "12:00", end: preset?.end ?? "14:30" },
+    ]);
+  const removeSchedule = (i: number) => updateSchedules(schedules.filter((_, idx) => idx !== i));
+  const patchSchedule = (i: number, patch: Partial<Schedule>) =>
+    updateSchedules(schedules.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const toggleScheduleDay = (i: number, day: number) => {
+    const s = schedules[i];
+    const days = s.days.includes(day) ? s.days.filter((d) => d !== day) : [...s.days, day].sort();
+    patchSchedule(i, { days });
+  };
 
   const save = () => {
     if (!form.name.trim()) return toast.error("Nom requis");
@@ -816,6 +858,105 @@ function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose:
           />
           Disponible
         </label>
+
+        <div className="mt-5 rounded-2xl bg-surface p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[12px] font-medium uppercase tracking-wider text-muted-foreground">Plages horaires</p>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Si aucune plage n'est définie, la formule est disponible toute la journée.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => addSchedule({ days: [1, 2, 3, 4, 5], start: "12:00", end: "14:30" })}
+                className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+              >
+                + Midi
+              </button>
+              <button
+                type="button"
+                onClick={() => addSchedule({ days: [1, 2, 3, 4, 5, 6], start: "19:00", end: "22:30" })}
+                className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+              >
+                + Soir
+              </button>
+              <button
+                type="button"
+                onClick={() => addSchedule({ days: [1, 2, 3, 4, 5], start: "17:00", end: "19:00" })}
+                className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+              >
+                + Happy hour
+              </button>
+              <button
+                type="button"
+                onClick={() => addSchedule()}
+                className="inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[11px] font-medium text-background hover:opacity-90"
+              >
+                <Plus className="h-3 w-3" /> Ajouter
+              </button>
+            </div>
+          </div>
+
+          {schedules.length === 0 ? (
+            <p className="mt-3 text-[12px] italic text-muted-foreground">Aucune plage — disponible en permanence.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {schedules.map((s, i) => (
+                <li key={i} className="rounded-xl bg-card p-3 ring-1 ring-border">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {DAY_LABELS.map((label, day) => {
+                      const active = s.days.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleScheduleDay(i, day)}
+                          className={
+                            "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition " +
+                            (active
+                              ? "bg-foreground text-background ring-foreground"
+                              : "bg-surface text-muted-foreground ring-border hover:text-foreground")
+                          }
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-[12px]">
+                      De
+                      <input
+                        type="time"
+                        value={s.start}
+                        onChange={(e) => patchSchedule(i, { start: e.target.value })}
+                        className="rounded-lg bg-surface px-2 py-1 text-[13px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 text-[12px]">
+                      à
+                      <input
+                        type="time"
+                        value={s.end}
+                        onChange={(e) => patchSchedule(i, { end: e.target.value })}
+                        className="rounded-lg bg-surface px-2 py-1 text-[13px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeSchedule(i)}
+                      className="ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Trash2 className="h-3 w-3" /> Retirer
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <button
           onClick={save}
