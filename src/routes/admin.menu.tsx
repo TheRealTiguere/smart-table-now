@@ -775,7 +775,7 @@ function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose:
 
         <div className="mt-5">
           <label className="text-[12px] font-medium uppercase tracking-wider text-muted-foreground">Plats inclus</label>
-          <div className="mt-2 max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-surface p-3">
+          <div className="mt-2 space-y-3 rounded-2xl bg-surface p-3">
             {sortedCats.map((c) => {
               const list = dishes.filter((d) => d.categoryId === c.id);
               if (list.length === 0) return null;
