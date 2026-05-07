@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { MockupNav } from "@/components/MockupNav";
+import { PublicNav } from "@/components/PublicNav";
 import { ArrowUpRight, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
