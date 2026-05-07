@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   return (
     <div className="min-h-screen bg-background">
-      <MockupNav />
+      <PublicNav />
 
       {/* Hero */}
       <section className="relative">
