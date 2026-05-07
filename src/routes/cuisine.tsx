@@ -63,6 +63,11 @@ function KitchenView() {
     toast.success(`Commande #${id} · ${table}`, { description: "Plats prêts envoyés en salle" });
   };
 
+  const handleBack = (id: string, status: OrderStatus, table: string) => {
+    recall(id);
+    const prev = status === "ready" ? "préparation" : status === "cooking" ? "à démarrer" : status;
+    toast(`Commande #${id} · ${table}`, { description: `Retour : ${prev}` });
+  };
   return (
     <div className="min-h-screen bg-surface">
       <AdminNav />
