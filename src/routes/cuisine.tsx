@@ -33,6 +33,7 @@ function KitchenView() {
   const mounted = useMounted();
   const allOrders = useStore((s) => s.orders);
   const advance = useStore((s) => s.advanceOrder);
+  const recall = useStore((s) => s.recallOrder);
   const toggleItem = useStore((s) => s.toggleItemDone);
   const validatePartial = useStore((s) => s.validatePartial);
   const orders = allOrders.filter((o) => o.status !== "served");
