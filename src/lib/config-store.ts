@@ -56,6 +56,13 @@ export type Category = {
   order: number;
 };
 
+export type Schedule = {
+  // 0 = Sunday ... 6 = Saturday
+  days: number[];
+  start: string; // "HH:MM"
+  end: string;   // "HH:MM"
+};
+
 export type Formula = {
   id: string;
   name: string;
@@ -63,17 +70,21 @@ export type Formula = {
   price: number;
   dishIds: string[]; // included dishes
   available: boolean;
+  // If empty/undefined => available all the time
+  schedules?: Schedule[];
 };
 
 type ConfigState = {
   restaurantName: string;
   logo?: string; // dataURL
+  timezone: string; // IANA tz, e.g. "Europe/Paris"
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
 
   setRestaurantName: (n: string) => void;
   setLogo: (logo?: string) => void;
+  setTimezone: (tz: string) => void;
 
   addCategory: (name: string) => void;
   renameCategory: (id: string, name: string) => void;
