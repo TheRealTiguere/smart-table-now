@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MockupNav } from "@/components/MockupNav";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
