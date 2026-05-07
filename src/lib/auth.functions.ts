@@ -14,10 +14,12 @@ function randomToken(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+export type Role = "super_admin" | "restaurant_admin" | "kitchen";
+
 export type CurrentUser = {
   id: string;
   username: string;
-  role: "super_admin" | "restaurant_admin";
+  role: Role;
   tenantId: string | null;
   tenantSlug: string | null;
   tenantName: string | null;
