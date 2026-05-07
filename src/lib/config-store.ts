@@ -145,10 +145,22 @@ export const useConfig = create<ConfigState>()(
       categories: seedCategories,
       dishes: seedDishes,
       formulas: seedFormulas,
+      tables: ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"],
 
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
       setTimezone: (tz) => set({ timezone: tz }),
+
+      addTable: (name) =>
+        set((s) => (s.tables.includes(name) ? {} : { tables: [...s.tables, name] })),
+      removeTable: (name) =>
+        set((s) => ({ tables: s.tables.filter((t) => t !== name) })),
+      renameTable: (oldName, newName) =>
+        set((s) =>
+          s.tables.includes(newName)
+            ? {}
+            : { tables: s.tables.map((t) => (t === oldName ? newName : t)) },
+        ),
 
       addCategory: (name) =>
         set((s) => ({
