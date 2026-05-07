@@ -148,6 +148,14 @@ function KitchenView() {
                         >
                           {ACTION[o.status]}
                         </button>
+                        {o.status !== "new" && (
+                          <button
+                            onClick={() => handleBack(o.id, o.status, o.table)}
+                            className="mt-2 w-full rounded-full border border-border bg-card py-2 text-[12px] font-medium text-muted-foreground hover:bg-secondary"
+                          >
+                            ← Revenir à {o.status === "ready" ? "en préparation" : "à démarrer"}
+                          </button>
+                        )}
                       </article>
                     );
                   })}
