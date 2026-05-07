@@ -733,7 +733,7 @@ function FormulasTab() {
 function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose: () => void }) {
   const { dishes, categories, addFormula, updateFormula } = useConfig();
   const [form, setForm] = useState<Omit<Formula, "id">>(
-    formula ?? { name: "", desc: "", price: 0, dishIds: [], available: true },
+    formula ?? { name: "", desc: "", price: 0, dishIds: [], available: true, schedules: [] },
   );
 
   const toggleDish = (id: string) =>
@@ -741,6 +741,22 @@ function FormulaEditor({ formula, onClose }: { formula: Formula | null; onClose:
       ...p,
       dishIds: p.dishIds.includes(id) ? p.dishIds.filter((x) => x !== id) : [...p.dishIds, id],
     }));
+
+  const schedules = form.schedules ?? [];
+  const updateSchedules = (next: Schedule[]) => setForm((p) => ({ ...p, schedules: next }));
+  const addSchedule = (preset?: Partial<Schedule>) =>
+    updateSchedules([
+      ...schedules,
+      { days: preset?.days ?? [1, 2, 3, 4, 5], start: preset?.start ?? "12:00", end: preset?.end ?? "14:30" },
+    ]);
+  const removeSchedule = (i: number) => updateSchedules(schedules.filter((_, idx) => idx !== i));
+  const patchSchedule = (i: number, patch: Partial<Schedule>) =>
+    updateSchedules(schedules.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const toggleScheduleDay = (i: number, day: number) => {
+    const s = schedules[i];
+    const days = s.days.includes(day) ? s.days.filter((d) => d !== day) : [...s.days, day].sort();
+    patchSchedule(i, { days });
+  };
 
   const save = () => {
     if (!form.name.trim()) return toast.error("Nom requis");
