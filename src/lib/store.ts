@@ -167,11 +167,31 @@ export const useStore = create<State>()(
             archived: [...st.archived, servedOrder],
           };
         }),
-      markPaid: (id) =>
-        set((st) => ({
-          orders: st.orders.map((o) => (o.id === id ? { ...o, paid: true } : o)),
-          archived: st.archived.map((o) => (o.id === id ? { ...o, paid: true } : o)),
-        })),
+      markPaid: (id, payment) =>
+        set((st) => {
+          const apply = (o: Order) =>
+            o.id === id
+              ? {
+                  ...o,
+                  paid: true,
+                  paidAt: o.paidAt ?? Date.now(),
+                  paymentMethod: payment?.method ?? o.paymentMethod ?? "card",
+                  receiptNumber: payment?.receiptNumber ?? o.receiptNumber,
+                }
+              : o;
+          return {
+            orders: st.orders.map(apply),
+            archived: st.archived.map(apply),
+          };
+        }),
+      setOrderEmail: (id, email) =>
+        set((st) => {
+          const apply = (o: Order) => (o.id === id ? { ...o, customerEmail: email } : o);
+          return {
+            orders: st.orders.map(apply),
+            archived: st.archived.map(apply),
+          };
+        }),
       setCurrentTable: (t) => set({ currentTable: t }),
       reset: () => set((st) => ({ orders: seed(), archived: st.archived })),
       clearHistory: () => set({ archived: [] }),
