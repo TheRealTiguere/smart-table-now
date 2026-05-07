@@ -3,6 +3,7 @@ import { MockupNav } from "@/components/MockupNav";
 import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
