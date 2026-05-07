@@ -107,6 +107,61 @@ export const useStore = create<State>()(
           }
           return { orders: st.orders.map((o) => (o.id === id ? updated : o)) };
         }),
+      recallOrder: (id) =>
+        set((st) => {
+          // Find in archived first
+          const archivedOrder = st.archived.find((o) => o.id === id);
+          if (archivedOrder) {
+            const restored = { ...archivedOrder, status: "ready" as OrderStatus, items: archivedOrder.items.map((it) => ({ ...it, done: false })) };
+            return {
+              archived: st.archived.filter((o) => o.id !== id),
+              orders: [...st.orders, restored],
+            };
+          }
+          // Otherwise step back from ready -> cooking, cooking -> new
+          return {
+            orders: st.orders.map((o) => {
+              if (o.id !== id) return o;
+              const prev: OrderStatus = o.status === "ready" ? "cooking" : o.status === "cooking" ? "new" : o.status;
+              return { ...o, status: prev, items: o.items.map((it) => ({ ...it, done: false })) };
+            }),
+          };
+        }),
+      toggleItemDone: (orderId, itemIndex) =>
+        set((st) => ({
+          orders: st.orders.map((o) =>
+            o.id !== orderId
+              ? o
+              : { ...o, items: o.items.map((it, i) => (i === itemIndex ? { ...it, done: !it.done } : it)) },
+          ),
+        })),
+      validatePartial: (orderId) =>
+        set((st) => {
+          const order = st.orders.find((o) => o.id === orderId);
+          if (!order) return {};
+          const remaining = order.items.filter((it) => !it.done);
+          const doneItems = order.items.filter((it) => it.done);
+          if (doneItems.length === 0 || remaining.length === 0) return {};
+          const newId = String(Math.floor(Math.random() * 900) + 100);
+          const servedTotal = doneItems.reduce((s, i) => s + i.price * i.qty, 0);
+          const remainingTotal = remaining.reduce((s, i) => s + i.price * i.qty, 0);
+          const servedOrder: Order = {
+            ...order,
+            id: newId,
+            status: "served",
+            items: doneItems.map((it) => ({ ...it, done: false })),
+            total: servedTotal,
+          };
+          const remainingOrder: Order = {
+            ...order,
+            items: remaining.map((it) => ({ ...it, done: false })),
+            total: remainingTotal,
+          };
+          return {
+            orders: st.orders.map((o) => (o.id === orderId ? remainingOrder : o)),
+            archived: [...st.archived, servedOrder],
+          };
+        }),
       markPaid: (id) =>
         set((st) => ({
           orders: st.orders.map((o) => (o.id === id ? { ...o, paid: true } : o)),
