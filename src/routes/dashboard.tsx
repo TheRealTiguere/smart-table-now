@@ -28,6 +28,7 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 };
 
 function Dashboard() {
+  const mounted = useMounted();
   const orders = useStore((s) => s.orders);
   const markPaid = useStore((s) => s.markPaid);
   const reset = useStore((s) => s.reset);
