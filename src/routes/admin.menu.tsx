@@ -115,8 +115,7 @@ function IdentiteTab() {
   const { restaurantName, logo, setRestaurantName, setLogo, timezone, setTimezone } = useConfig();
   const tzList = useMemo(() => {
     try {
-      // @ts-expect-error supportedValuesOf is recent
-      const tzs: string[] = Intl.supportedValuesOf?.("timeZone") ?? [];
+      const tzs: string[] = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
       return tzs.length ? tzs : ["Europe/Paris", "Europe/London", "America/New_York", "America/Los_Angeles", "UTC"];
     } catch {
       return ["Europe/Paris", "Europe/London", "America/New_York", "America/Los_Angeles", "UTC"];
