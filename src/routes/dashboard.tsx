@@ -348,7 +348,21 @@ function Dashboard() {
                     <li key={o.id} className="rounded-2xl bg-surface p-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[12px] font-medium text-muted-foreground">#{o.id} · {timeAgo(o.createdAt)}</span>
-                        <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
+                          {o.status === "ready" && (
+                            <button
+                              onClick={() => {
+                                recallOrder(o.id);
+                                toast.success(`Commande #${o.id} renvoyée en cuisine`);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border hover:bg-foreground hover:text-background"
+                              title="Renvoyer en préparation"
+                            >
+                              <RotateCcw className="h-3 w-3" /> Rappeler
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <ul className="mt-2 space-y-1 text-[13px]">
                         {o.items.map((it, i) => (
