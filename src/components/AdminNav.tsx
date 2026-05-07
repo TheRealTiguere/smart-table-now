@@ -5,6 +5,7 @@ import { logout } from "@/lib/admin-auth";
 const links = [
   { to: "/cuisine" as const, label: "Cuisine" },
   { to: "/dashboard" as const, label: "Pilotage" },
+  { to: "/admin/menu" as const, label: "Carte" },
 ];
 
 export function AdminNav() {
