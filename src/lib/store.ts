@@ -13,6 +13,10 @@ export type Order = {
   createdAt: number;
   total: number;
   paid?: boolean;
+  paidAt?: number;
+  paymentMethod?: "cash" | "card" | "other";
+  customerEmail?: string;
+  receiptNumber?: string;
 };
 
 export type TableStatus = "free" | "occupied" | "cooking" | "ready";
@@ -21,12 +25,13 @@ type State = {
   orders: Order[];
   archived: Order[];
   currentTable: string;
-  addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus }) => string;
+  addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus; customerEmail?: string }) => string;
   advanceOrder: (id: string) => void;
   recallOrder: (id: string) => void;
   toggleItemDone: (orderId: string, itemIndex: number) => void;
   validatePartial: (orderId: string) => void;
-  markPaid: (id: string) => void;
+  markPaid: (id: string, payment?: { method?: "cash" | "card" | "other"; receiptNumber?: string }) => void;
+  setOrderEmail: (id: string, email: string) => void;
   setCurrentTable: (t: string) => void;
   reset: () => void;
   clearHistory: () => void;
@@ -87,7 +92,7 @@ export const useStore = create<State>()(
         set((st) => ({
           orders: [
             ...st.orders,
-            { id, table: o.table, items: o.items, status: o.status ?? "new", createdAt: Date.now(), total },
+            { id, table: o.table, items: o.items, status: o.status ?? "new", createdAt: Date.now(), total, customerEmail: o.customerEmail },
           ],
         }));
         return id;
@@ -162,11 +167,31 @@ export const useStore = create<State>()(
             archived: [...st.archived, servedOrder],
           };
         }),
-      markPaid: (id) =>
-        set((st) => ({
-          orders: st.orders.map((o) => (o.id === id ? { ...o, paid: true } : o)),
-          archived: st.archived.map((o) => (o.id === id ? { ...o, paid: true } : o)),
-        })),
+      markPaid: (id, payment) =>
+        set((st) => {
+          const apply = (o: Order) =>
+            o.id === id
+              ? {
+                  ...o,
+                  paid: true,
+                  paidAt: o.paidAt ?? Date.now(),
+                  paymentMethod: payment?.method ?? o.paymentMethod ?? "card",
+                  receiptNumber: payment?.receiptNumber ?? o.receiptNumber,
+                }
+              : o;
+          return {
+            orders: st.orders.map(apply),
+            archived: st.archived.map(apply),
+          };
+        }),
+      setOrderEmail: (id, email) =>
+        set((st) => {
+          const apply = (o: Order) => (o.id === id ? { ...o, customerEmail: email } : o);
+          return {
+            orders: st.orders.map(apply),
+            archived: st.archived.map(apply),
+          };
+        }),
       setCurrentTable: (t) => set({ currentTable: t }),
       reset: () => set((st) => ({ orders: seed(), archived: st.archived })),
       clearHistory: () => set({ archived: [] }),
