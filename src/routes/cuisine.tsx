@@ -26,8 +26,9 @@ const ACTION: Record<OrderStatus, string> = {
 
 function KitchenView() {
   const mounted = useMounted();
-  const orders = useStore((s) => s.orders.filter((o) => o.status !== "served"));
+  const allOrders = useStore((s) => s.orders);
   const advance = useStore((s) => s.advanceOrder);
+  const orders = allOrders.filter((o) => o.status !== "served");
   const [, force] = useState(0);
 
   useEffect(() => {
