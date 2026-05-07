@@ -154,21 +154,105 @@ function Dashboard() {
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           {/* Tables */}
           <div className="rounded-3xl bg-surface p-6 lg:col-span-2">
-            <div className="flex items-baseline justify-between">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 className="font-display text-2xl font-semibold tracking-tight">Plan de salle</h2>
-              <div className="flex flex-wrap gap-3 text-[11px]">
-                {(Object.keys(STATUS_LABEL) as TableStatus[]).map((k) => (
+              <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                {!editPlan && (Object.keys(STATUS_LABEL) as TableStatus[]).map((k) => (
                   <span key={k} className="inline-flex items-center gap-1.5 text-muted-foreground">
                     <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[k]}`} />
                     {STATUS_LABEL[k]}
                   </span>
                 ))}
+                <button
+                  onClick={() => setEditPlan((v) => !v)}
+                  className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-[11px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+                >
+                  <Pencil className="h-3 w-3" /> {editPlan ? "Terminer" : "Modifier"}
+                </button>
               </div>
             </div>
+
+            {editPlan && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = newTable.trim();
+                  if (!name) return;
+                  if (TABLE_IDS.includes(name)) {
+                    toast.error("Cette table existe déjà");
+                    return;
+                  }
+                  addTable(name);
+                  setNewTable("");
+                  toast.success(`Table ${name} ajoutée`);
+                }}
+                className="mt-4 flex gap-2"
+              >
+                <input
+                  value={newTable}
+                  onChange={(e) => setNewTable(e.target.value)}
+                  placeholder="Nom de la table (ex. T13, Terrasse 1…)"
+                  maxLength={20}
+                  className="flex-1 rounded-2xl bg-card px-4 py-2.5 text-[14px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+                />
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 rounded-2xl bg-foreground px-4 py-2.5 text-[13px] font-medium text-background hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4" /> Ajouter
+                </button>
+              </form>
+            )}
+
             <div className="mt-6 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
               {TABLE_IDS.map((id) => {
                 const status = tableStatus(orders, id);
                 const total = tableTotal(orders, id);
+                if (editPlan) {
+                  return (
+                    <div
+                      key={id}
+                      className="relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-card p-3 text-center shadow-xs"
+                    >
+                      <button
+                        onClick={() => {
+                          if (status !== "free") {
+                            toast.error("Table occupée — impossible de la supprimer");
+                            return;
+                          }
+                          if (confirm(`Supprimer la table ${id} ?`)) {
+                            removeTable(id);
+                            if (selected === id) setSelected(null);
+                            toast.success(`Table ${id} supprimée`);
+                          }
+                        }}
+                        className="absolute right-1.5 top-1.5 rounded-full bg-foreground/90 p-1 text-background hover:bg-foreground"
+                        aria-label={`Supprimer ${id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                      <input
+                        defaultValue={id}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (!v || v === id) {
+                            e.target.value = id;
+                            return;
+                          }
+                          if (TABLE_IDS.includes(v)) {
+                            toast.error("Nom déjà utilisé");
+                            e.target.value = id;
+                            return;
+                          }
+                          renameTable(id, v);
+                          if (selected === id) setSelected(v);
+                        }}
+                        className="w-full bg-transparent text-center font-display text-xl font-semibold tracking-tight outline-none focus:underline"
+                      />
+                      <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span>
+                    </div>
+                  );
+                }
                 return (
                   <button
                     key={id}
@@ -182,6 +266,11 @@ function Dashboard() {
                   </button>
                 );
               })}
+              {TABLE_IDS.length === 0 && (
+                <p className="col-span-full text-center text-[13px] text-muted-foreground py-8">
+                  Aucune table. Activez « Modifier » pour en ajouter.
+                </p>
+              )}
             </div>
           </div>
 
