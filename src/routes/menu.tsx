@@ -376,7 +376,14 @@ function ClientMenu() {
               <span className="text-[14px] text-muted-foreground">Total</span>
               <span className="font-display text-2xl font-semibold tabular-nums">{total}€</span>
             </div>
-            <button onClick={send} className="mt-5 w-full rounded-2xl bg-foreground py-4 text-[15px] font-medium text-background transition-opacity hover:opacity-90">
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="Email pour recevoir la note (facultatif)"
+              className="mt-4 w-full rounded-xl bg-surface px-4 py-2.5 text-[13px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+            />
+            <button onClick={send} className="mt-3 w-full rounded-2xl bg-foreground py-4 text-[15px] font-medium text-background transition-opacity hover:opacity-90">
               Envoyer en cuisine
             </button>
             <p className="mt-3 text-center text-[11px] text-muted-foreground">Paiement à table en fin de repas</p>
