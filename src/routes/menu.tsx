@@ -83,6 +83,14 @@ function ClientMenu() {
     setTimeout(() => setSent(false), 2500);
   };
 
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background pb-32">
+        <MockupNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-32">
       <MockupNav />
