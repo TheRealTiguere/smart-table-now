@@ -23,6 +23,9 @@ type State = {
   currentTable: string;
   addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus }) => string;
   advanceOrder: (id: string) => void;
+  recallOrder: (id: string) => void;
+  toggleItemDone: (orderId: string, itemIndex: number) => void;
+  validatePartial: (orderId: string) => void;
   markPaid: (id: string) => void;
   setCurrentTable: (t: string) => void;
   reset: () => void;
