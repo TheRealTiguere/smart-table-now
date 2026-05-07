@@ -24,7 +24,7 @@ function ClientMenu() {
   const addOrder = useStore((s) => s.addOrder);
   const allOrders = useStore((s) => s.orders);
 
-  const { restaurantName, logo, categories, dishes, formulas } = useConfig();
+  const { restaurantName, logo, categories, dishes, formulas, timezone } = useConfig();
 
   const table = search.table || currentTable;
   const myOrders = allOrders.filter((o) => o.table === table && o.status !== "served");
@@ -33,8 +33,18 @@ function ClientMenu() {
     if (search.table && search.table !== currentTable) setCurrentTable(search.table);
   }, [search.table, currentTable, setCurrentTable]);
 
+  // Tick every minute so schedule-restricted formulas appear/disappear in real time
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const sortedCats = useMemo(() => [...categories].sort((a, b) => a.order - b.order), [categories]);
-  const availableFormulas = useMemo(() => formulas.filter((f) => f.available), [formulas]);
+  const availableFormulas = useMemo(
+    () => formulas.filter((f) => isFormulaActiveNow(f, timezone)),
+    [formulas, timezone],
+  );
   const TABS = useMemo(
     () => [
       "Tous",
