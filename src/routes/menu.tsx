@@ -59,6 +59,7 @@ function ClientMenu() {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [info, setInfo] = useState<string | null>(null); // dish id
+  const [customerEmail, setCustomerEmail] = useState("");
 
   useEffect(() => {
     if (!TABS.includes(tab)) setTab("Tous");
