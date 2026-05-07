@@ -3,6 +3,7 @@ import { MockupNav } from "@/components/MockupNav";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/menu")({
