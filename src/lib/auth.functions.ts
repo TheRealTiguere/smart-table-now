@@ -174,7 +174,7 @@ export const meFn = createServerFn({ method: "GET" }).handler(async (): Promise<
   const u = session.app_users as {
     id: string;
     username: string;
-    role: "super_admin" | "restaurant_admin";
+    role: Role;
     tenant_id: string | null;
     email: string | null;
   };
@@ -206,9 +206,7 @@ export const meFn = createServerFn({ method: "GET" }).handler(async (): Promise<
  * Server-side helper for use within other server functions.
  * Throws if not authenticated. Optionally enforces a role.
  */
-export async function requireUser(
-  role?: "super_admin" | "restaurant_admin",
-): Promise<CurrentUser> {
+export async function requireUser(role?: Role): Promise<CurrentUser> {
   const me = await meFn();
   if (!me) throw new Error("Non authentifié");
   if (role && me.role !== role) {
