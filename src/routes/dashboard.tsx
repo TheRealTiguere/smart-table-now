@@ -91,6 +91,14 @@ function Dashboard() {
     setSelected(null);
   };
 
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MockupNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <MockupNav />
