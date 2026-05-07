@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { MockupNav } from "@/components/MockupNav";
+import { PublicNav } from "@/components/PublicNav";
 import { ArrowUpRight, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   return (
     <div className="min-h-screen bg-background">
-      <MockupNav />
+      <PublicNav />
 
       {/* Hero */}
       <section className="relative">
@@ -31,12 +31,12 @@ function Landing() {
             Pas d'app, pas d'attente, pas d'erreur.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Link to="/menu" className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-6 py-3 text-[15px] font-medium text-background transition-opacity hover:opacity-90">
-              Essayer la démo
+            <Link to="/admin/login" className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-6 py-3 text-[15px] font-medium text-background transition-opacity hover:opacity-90">
+              Accès équipe
             </Link>
-            <Link to="/dashboard" className="inline-flex items-center gap-1.5 rounded-full px-6 py-3 text-[15px] font-medium text-primary transition-colors hover:bg-secondary">
-              En savoir plus <ArrowUpRight className="h-4 w-4" />
-            </Link>
+            <a href="#fonctionnement" className="inline-flex items-center gap-1.5 rounded-full px-6 py-3 text-[15px] font-medium text-primary transition-colors hover:bg-secondary">
+              Découvrir <ArrowUpRight className="h-4 w-4" />
+            </a>
           </div>
 
           {/* Phone preview */}
@@ -80,7 +80,7 @@ function Landing() {
       </section>
 
       {/* Three steps */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
+      <section id="fonctionnement" className="mx-auto max-w-6xl px-6 py-24 scroll-mt-20">
         <h2 className="text-center font-display text-5xl font-semibold tracking-tight">Trois gestes. C'est tout.</h2>
         <div className="mt-16 grid gap-4 md:grid-cols-3">
           {[
@@ -120,7 +120,7 @@ function Landing() {
       </section>
 
       {/* Features grid */}
-      <section className="mx-auto max-w-6xl px-6 pb-24">
+      <section id="fonctionnalites" className="mx-auto max-w-6xl px-6 pb-24 scroll-mt-20">
         <div className="grid gap-4 md:grid-cols-6">
           <div className="rounded-3xl bg-surface p-8 md:col-span-4">
             <h3 className="font-display text-3xl font-semibold">Menu vivant</h3>
@@ -146,7 +146,7 @@ function Landing() {
       </section>
 
       {/* Final CTA */}
-      <section className="mx-auto max-w-3xl px-6 pb-32 text-center">
+      <section id="resultats" className="mx-auto max-w-3xl px-6 pb-32 text-center scroll-mt-20">
         <h2 className="font-display text-5xl font-semibold tracking-tight md:text-6xl">
           Prêt à libérer la salle&nbsp;?
         </h2>
@@ -154,11 +154,8 @@ function Landing() {
           Installation en 24 h. Sans engagement.
         </p>
         <div className="mt-8 flex justify-center gap-3">
-          <Link to="/dashboard" className="rounded-full bg-foreground px-7 py-3.5 text-[15px] font-medium text-background">
-            Voir le pilotage
-          </Link>
-          <Link to="/menu" className="rounded-full px-7 py-3.5 text-[15px] font-medium text-primary hover:bg-secondary">
-            Tester côté client
+          <Link to="/admin/login" className="rounded-full bg-foreground px-7 py-3.5 text-[15px] font-medium text-background">
+            Accéder à l'espace équipe
           </Link>
         </div>
       </section>

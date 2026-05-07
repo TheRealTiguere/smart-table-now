@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MockupNav } from "@/components/MockupNav";
+import { AdminNav } from "@/components/AdminNav";
+import { AdminGuard } from "@/components/AdminGuard";
 import { Clock } from "lucide-react";
 import { useStore, timeAgo, type OrderStatus } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
@@ -7,7 +8,11 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/cuisine")({
-  component: KitchenView,
+  component: () => (
+    <AdminGuard>
+      <KitchenView />
+    </AdminGuard>
+  ),
   head: () => ({ meta: [{ title: "Cuisine" }] }),
 });
 
@@ -39,7 +44,7 @@ function KitchenView() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-surface">
-        <MockupNav />
+        <AdminNav />
       </div>
     );
   }
@@ -52,7 +57,7 @@ function KitchenView() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <MockupNav />
+      <AdminNav />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">

@@ -1,5 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { MockupNav } from "@/components/MockupNav";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -84,21 +83,26 @@ function ClientMenu() {
   };
 
   if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background pb-32">
-        <MockupNav />
-      </div>
-    );
+    return <div className="min-h-screen bg-background pb-32" />;
   }
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <MockupNav />
+      {/* Brand bar minimal */}
+      <div className="border-b border-border/60">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-[6px] bg-foreground" />
+            <span className="font-display text-[15px] font-semibold tracking-tight">La Trattoria</span>
+          </div>
+          <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">Table {table.replace("T", "")}</span>
+        </div>
+      </div>
 
       {/* Header */}
       <div className="mx-auto max-w-2xl px-6 pt-10 pb-6">
-        <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Table {table.replace("T", "")}</p>
-        <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">La Trattoria</h1>
+        <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Bienvenue</p>
+        <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">La carte</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">Bonsoir — voici la carte de ce soir.</p>
 
         {myOrders.length > 0 && (
@@ -120,7 +124,7 @@ function ClientMenu() {
       </div>
 
       {/* Categories */}
-      <div className="sticky top-[57px] z-30 glass border-b border-border/60">
+      <div className="sticky top-0 z-30 glass border-b border-border/60">
         <div className="mx-auto flex max-w-2xl gap-1.5 overflow-x-auto px-6 py-3">
           {CATS.map((c) => (
             <button
@@ -193,11 +197,6 @@ function ClientMenu() {
           })}
         </ul>
 
-        <div className="mt-10 flex justify-center">
-          <Link to="/cuisine" className="text-[12px] text-muted-foreground underline-offset-4 hover:underline">
-            Voir l'écran cuisine →
-          </Link>
-        </div>
       </main>
 
       {/* Cart bar */}

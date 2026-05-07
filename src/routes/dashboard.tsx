@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { MockupNav } from "@/components/MockupNav";
+import { AdminNav } from "@/components/AdminNav";
+import { AdminGuard } from "@/components/AdminGuard";
 import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -8,7 +9,11 @@ import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
-  component: Dashboard,
+  component: () => (
+    <AdminGuard>
+      <Dashboard />
+    </AdminGuard>
+  ),
   head: () => ({ meta: [{ title: "Pilotage" }] }),
 });
 
@@ -95,14 +100,14 @@ function Dashboard() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-background">
-        <MockupNav />
+        <AdminNav />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <MockupNav />
+      <AdminNav />
 
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
