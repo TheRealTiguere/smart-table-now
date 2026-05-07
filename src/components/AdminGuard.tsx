@@ -1,16 +1,18 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { useMe } from "@/lib/use-me";
+import type { Role } from "@/lib/auth.functions";
 
 export function AdminGuard({
   children,
   requireRole,
 }: {
   children: ReactNode;
-  requireRole?: "super_admin" | "restaurant_admin";
+  requireRole?: Role;
 }) {
   const { data: me, isLoading } = useMe();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (isLoading) return;
@@ -18,15 +20,25 @@ export function AdminGuard({
       navigate({ to: "/admin/login" });
       return;
     }
-    if (requireRole === "super_admin" && me.role !== "super_admin") {
+    // super_admin can access everything
+    if (me.role === "super_admin") return;
+    // kitchen can only see /cuisine
+    if (me.role === "kitchen" && location.pathname !== "/cuisine") {
+      navigate({ to: "/cuisine" });
+      return;
+    }
+    if (requireRole && me.role !== requireRole) {
       navigate({ to: "/dashboard" });
     }
-  }, [isLoading, me, navigate, requireRole]);
+  }, [isLoading, me, navigate, requireRole, location.pathname]);
 
   if (isLoading || !me) {
     return <div className="min-h-screen bg-background" />;
   }
-  if (requireRole === "super_admin" && me.role !== "super_admin") {
+  if (me.role === "kitchen" && location.pathname !== "/cuisine") {
+    return <div className="min-h-screen bg-background" />;
+  }
+  if (requireRole && me.role !== requireRole && me.role !== "super_admin") {
     return <div className="min-h-screen bg-background" />;
   }
   return <>{children}</>;
