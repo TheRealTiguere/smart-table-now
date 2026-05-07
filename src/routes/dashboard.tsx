@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
-import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
+import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
@@ -16,8 +17,6 @@ export const Route = createFileRoute("/dashboard")({
   ),
   head: () => ({ meta: [{ title: "Pilotage" }] }),
 });
-
-const TABLE_IDS = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
 
 const STATUS_DOT: Record<TableStatus, string> = {
   free: "bg-border",
