@@ -55,7 +55,7 @@ export const generateReceiptPdfFn = createServerFn({ method: "POST" })
     const page = pdf.addPage([420, 700]);
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const { width, height } = page.size();
+    const { width, height } = page.getSize();
     let y = height - 40;
 
     const draw = (text: string, opts: { x?: number; size?: number; b?: boolean; color?: [number, number, number] } = {}) => {
