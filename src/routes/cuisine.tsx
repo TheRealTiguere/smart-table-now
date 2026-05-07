@@ -44,7 +44,7 @@ function KitchenView() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-surface">
-        <MockupNav />
+        <AdminNav />
       </div>
     );
   }
@@ -57,7 +57,7 @@ function KitchenView() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <MockupNav />
+      <AdminNav />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
