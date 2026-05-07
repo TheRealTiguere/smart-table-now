@@ -140,7 +140,7 @@ export const loginFn = createServerFn({ method: "POST" })
     setCookie(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: SESSION_DAYS * 24 * 60 * 60,
       path: "/",
     });
