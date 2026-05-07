@@ -124,7 +124,7 @@ function ClientMenu() {
       </div>
 
       {/* Categories */}
-      <div className="sticky top-[57px] z-30 glass border-b border-border/60">
+      <div className="sticky top-0 z-30 glass border-b border-border/60">
         <div className="mx-auto flex max-w-2xl gap-1.5 overflow-x-auto px-6 py-3">
           {CATS.map((c) => (
             <button
