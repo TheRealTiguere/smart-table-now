@@ -6,6 +6,7 @@ const links = [
   { to: "/cuisine" as const, label: "Cuisine" },
   { to: "/dashboard" as const, label: "Pilotage" },
   { to: "/admin/menu" as const, label: "Carte" },
+  { to: "/admin/analytics" as const, label: "Analyses" },
 ];
 
 export function AdminNav() {
