@@ -25,15 +25,23 @@ const ACTION: Record<OrderStatus, string> = {
 };
 
 function KitchenView() {
+  const mounted = useMounted();
   const orders = useStore((s) => s.orders.filter((o) => o.status !== "served"));
   const advance = useStore((s) => s.advanceOrder);
   const [, force] = useState(0);
 
-  // Refresh "time ago" every 20s
   useEffect(() => {
     const i = setInterval(() => force((n) => n + 1), 20_000);
     return () => clearInterval(i);
   }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-surface">
+        <MockupNav />
+      </div>
+    );
+  }
 
   const handle = (id: string, status: OrderStatus, table: string) => {
     advance(id);
