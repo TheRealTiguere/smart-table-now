@@ -33,6 +33,7 @@ function KitchenView() {
   const mounted = useMounted();
   const allOrders = useStore((s) => s.orders);
   const advance = useStore((s) => s.advanceOrder);
+  const recall = useStore((s) => s.recallOrder);
   const toggleItem = useStore((s) => s.toggleItemDone);
   const validatePartial = useStore((s) => s.validatePartial);
   const orders = allOrders.filter((o) => o.status !== "served");
@@ -62,6 +63,11 @@ function KitchenView() {
     toast.success(`Commande #${id} · ${table}`, { description: "Plats prêts envoyés en salle" });
   };
 
+  const handleBack = (id: string, status: OrderStatus, table: string) => {
+    recall(id);
+    const prev = status === "ready" ? "préparation" : status === "cooking" ? "à démarrer" : status;
+    toast(`Commande #${id} · ${table}`, { description: `Retour : ${prev}` });
+  };
   return (
     <div className="min-h-screen bg-surface">
       <AdminNav />
@@ -142,6 +148,14 @@ function KitchenView() {
                         >
                           {ACTION[o.status]}
                         </button>
+                        {o.status !== "new" && (
+                          <button
+                            onClick={() => handleBack(o.id, o.status, o.table)}
+                            className="mt-2 w-full rounded-full border border-border bg-card py-2 text-[12px] font-medium text-muted-foreground hover:bg-secondary"
+                          >
+                            ← Revenir à {o.status === "ready" ? "en préparation" : "à démarrer"}
+                          </button>
+                        )}
                       </article>
                     );
                   })}
