@@ -33,9 +33,9 @@ function ClientMenu() {
   const myOrders = useStore((s) => s.orders.filter((o) => o.table === (search.table || currentTable) && o.status !== "served"));
 
   const table = search.table || currentTable;
-  if (search.table && search.table !== currentTable) {
-    setCurrentTable(search.table);
-  }
+  useEffect(() => {
+    if (search.table && search.table !== currentTable) setCurrentTable(search.table);
+  }, [search.table, currentTable, setCurrentTable]);
 
   const [cat, setCat] = useState("Tous");
   const [cart, setCart] = useState<Record<string, number>>({});
