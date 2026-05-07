@@ -78,6 +78,7 @@ type ConfigState = {
   restaurantName: string;
   logo?: string; // dataURL
   timezone: string; // IANA tz, e.g. "Europe/Paris"
+  tables: string[];
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
@@ -85,6 +86,10 @@ type ConfigState = {
   setRestaurantName: (n: string) => void;
   setLogo: (logo?: string) => void;
   setTimezone: (tz: string) => void;
+
+  addTable: (name: string) => void;
+  removeTable: (name: string) => void;
+  renameTable: (oldName: string, newName: string) => void;
 
   addCategory: (name: string) => void;
   renameCategory: (id: string, name: string) => void;
@@ -140,10 +145,22 @@ export const useConfig = create<ConfigState>()(
       categories: seedCategories,
       dishes: seedDishes,
       formulas: seedFormulas,
+      tables: ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"],
 
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
       setTimezone: (tz) => set({ timezone: tz }),
+
+      addTable: (name) =>
+        set((s) => (s.tables.includes(name) ? {} : { tables: [...s.tables, name] })),
+      removeTable: (name) =>
+        set((s) => ({ tables: s.tables.filter((t) => t !== name) })),
+      renameTable: (oldName, newName) =>
+        set((s) =>
+          s.tables.includes(newName)
+            ? {}
+            : { tables: s.tables.map((t) => (t === oldName ? newName : t)) },
+        ),
 
       addCategory: (name) =>
         set((s) => ({
