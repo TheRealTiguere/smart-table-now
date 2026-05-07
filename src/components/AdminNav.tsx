@@ -10,6 +10,7 @@ const links = [
   { to: "/dashboard" as const, label: "Pilotage" },
   { to: "/admin/menu" as const, label: "Carte" },
   { to: "/admin/analytics" as const, label: "Analyses" },
+  { to: "/admin/users" as const, label: "Comptes" },
 ];
 
 export function AdminNav() {
