@@ -95,14 +95,14 @@ function Dashboard() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-background">
-        <MockupNav />
+        <AdminNav />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <MockupNav />
+      <AdminNav />
 
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">

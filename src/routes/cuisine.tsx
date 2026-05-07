@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MockupNav } from "@/components/MockupNav";
+import { AdminNav } from "@/components/AdminNav";
+import { AdminGuard } from "@/components/AdminGuard";
 import { Clock } from "lucide-react";
 import { useStore, timeAgo, type OrderStatus } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
@@ -7,7 +8,11 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/cuisine")({
-  component: KitchenView,
+  component: () => (
+    <AdminGuard>
+      <KitchenView />
+    </AdminGuard>
+  ),
   head: () => ({ meta: [{ title: "Cuisine" }] }),
 });
 
