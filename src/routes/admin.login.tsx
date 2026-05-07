@@ -31,7 +31,8 @@ function AdminLogin() {
 
   useEffect(() => {
     if (me) {
-      navigate({ to: me.role === "super_admin" ? "/super-admin" : "/dashboard" });
+      const dest = me.role === "super_admin" ? "/super-admin" : me.role === "kitchen" ? "/cuisine" : "/dashboard";
+      navigate({ to: dest });
     }
   }, [me, navigate]);
 
