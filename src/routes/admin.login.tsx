@@ -42,7 +42,8 @@ function AdminLogin() {
       const res = await login({ data: { username, password: pwd } });
       await qc.invalidateQueries({ queryKey: ["me"] });
       toast.success("Connecté");
-      navigate({ to: res.role === "super_admin" ? "/super-admin" : "/dashboard" });
+      const dest = res.role === "super_admin" ? "/super-admin" : res.role === "kitchen" ? "/cuisine" : "/dashboard";
+      navigate({ to: dest });
     } catch (err) {
       toast.error((err as Error).message);
       setBusy(false);
