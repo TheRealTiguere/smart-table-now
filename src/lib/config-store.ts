@@ -205,3 +205,35 @@ export function useConfigHydrated() {
   }, []);
   return hydrated;
 }
+
+export function isFormulaActiveNow(f: Formula, timezone: string, now: Date = new Date()): boolean {
+  if (!f.available) return false;
+  if (!f.schedules || f.schedules.length === 0) return true;
+  // Get day-of-week and HH:MM in target timezone
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(now);
+  const wk = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
+  const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const day = dayMap[wk] ?? 0;
+  const minutes = parseInt(hh, 10) * 60 + parseInt(mm, 10);
+  return f.schedules.some((s) => {
+    if (!s.days.includes(day)) return false;
+    const [sh, sm] = s.start.split(":").map(Number);
+    const [eh, em] = s.end.split(":").map(Number);
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    if (end >= start) return minutes >= start && minutes <= end;
+    // overnight (e.g., 22:00 -> 02:00)
+    return minutes >= start || minutes <= end;
+  });
+}
+
+export const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
