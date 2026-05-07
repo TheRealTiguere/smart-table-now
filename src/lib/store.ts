@@ -19,12 +19,14 @@ export type TableStatus = "free" | "occupied" | "cooking" | "ready";
 
 type State = {
   orders: Order[];
+  archived: Order[];
   currentTable: string;
   addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus }) => string;
   advanceOrder: (id: string) => void;
   markPaid: (id: string) => void;
   setCurrentTable: (t: string) => void;
   reset: () => void;
+  clearHistory: () => void;
 };
 
 const NEXT: Record<OrderStatus, OrderStatus> = {
