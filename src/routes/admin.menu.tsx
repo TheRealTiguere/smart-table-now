@@ -112,7 +112,16 @@ function MenuAdmin() {
 /* ---------------- Identité ---------------- */
 
 function IdentiteTab() {
-  const { restaurantName, logo, setRestaurantName, setLogo } = useConfig();
+  const { restaurantName, logo, setRestaurantName, setLogo, timezone, setTimezone } = useConfig();
+  const tzList = useMemo(() => {
+    try {
+      // @ts-expect-error supportedValuesOf is recent
+      const tzs: string[] = Intl.supportedValuesOf?.("timeZone") ?? [];
+      return tzs.length ? tzs : ["Europe/Paris", "Europe/London", "America/New_York", "America/Los_Angeles", "UTC"];
+    } catch {
+      return ["Europe/Paris", "Europe/London", "America/New_York", "America/Los_Angeles", "UTC"];
+    }
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
