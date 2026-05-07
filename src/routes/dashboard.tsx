@@ -37,8 +37,14 @@ function Dashboard() {
   const orders = useStore((s) => s.orders);
   const markPaid = useStore((s) => s.markPaid);
   const reset = useStore((s) => s.reset);
+  const TABLE_IDS = useConfig((s) => s.tables);
+  const addTable = useConfig((s) => s.addTable);
+  const removeTable = useConfig((s) => s.removeTable);
+  const renameTable = useConfig((s) => s.renameTable);
   const [selected, setSelected] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
+  const [editPlan, setEditPlan] = useState(false);
+  const [newTable, setNewTable] = useState("");
 
   const stats = useMemo(() => {
     const today = orders.filter((o) => o.status !== "served" || o.paid);
