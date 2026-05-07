@@ -8,9 +8,11 @@ import { useMe } from "@/lib/use-me";
 const links = [
   { to: "/cuisine" as const, label: "Cuisine" },
   { to: "/dashboard" as const, label: "Pilotage" },
+  { to: "/admin/orders" as const, label: "Historique" },
   { to: "/admin/menu" as const, label: "Carte" },
   { to: "/admin/analytics" as const, label: "Analyses" },
   { to: "/admin/users" as const, label: "Comptes" },
+  { to: "/admin/settings" as const, label: "Paramètres" },
 ];
 
 export function AdminNav() {
