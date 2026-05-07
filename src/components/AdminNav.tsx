@@ -16,7 +16,7 @@ const mainLinks = [
 const settingsLinks = [
   { to: "/admin/settings" as const, label: "Paramètres" },
   { to: "/admin/users" as const, label: "Comptes" },
-  { to: "/admin/menu" as const, label: "Carte" },
+  { to: "/admin/menu" as const, label: "Menu" },
 ];
 
 export function AdminNav() {
