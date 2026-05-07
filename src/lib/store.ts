@@ -25,12 +25,13 @@ type State = {
   orders: Order[];
   archived: Order[];
   currentTable: string;
-  addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus }) => string;
+  addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus; customerEmail?: string }) => string;
   advanceOrder: (id: string) => void;
   recallOrder: (id: string) => void;
   toggleItemDone: (orderId: string, itemIndex: number) => void;
   validatePartial: (orderId: string) => void;
-  markPaid: (id: string) => void;
+  markPaid: (id: string, payment?: { method?: "cash" | "card" | "other"; receiptNumber?: string }) => void;
+  setOrderEmail: (id: string, email: string) => void;
   setCurrentTable: (t: string) => void;
   reset: () => void;
   clearHistory: () => void;
