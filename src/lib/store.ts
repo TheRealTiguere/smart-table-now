@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type OrderStatus = "new" | "cooking" | "ready" | "served";
 
-export type OrderItem = { id: string; name: string; price: number; qty: number; note?: string };
+export type OrderItem = { id: string; name: string; price: number; qty: number; note?: string; done?: boolean };
 
 export type Order = {
   id: string;
