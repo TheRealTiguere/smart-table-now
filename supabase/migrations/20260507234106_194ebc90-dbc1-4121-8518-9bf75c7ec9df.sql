@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.next_receipt_number(uuid) FROM PUBLIC, anon, authenticated;
