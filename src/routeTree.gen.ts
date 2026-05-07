@@ -15,6 +15,7 @@ import { Route as CuisineRouteImport } from './routes/cuisine'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
@@ -46,12 +47,18 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/admin/analytics',
+  path: '/admin/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cuisine': typeof CuisineRoute
   '/dashboard': typeof DashboardRoute
   '/menu': typeof MenuRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/cuisine': typeof CuisineRoute
   '/dashboard': typeof DashboardRoute
   '/menu': typeof MenuRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/cuisine': typeof CuisineRoute
   '/dashboard': typeof DashboardRoute
   '/menu': typeof MenuRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
 }
@@ -79,16 +88,25 @@ export interface FileRouteTypes {
     | '/cuisine'
     | '/dashboard'
     | '/menu'
+    | '/admin/analytics'
     | '/admin/login'
     | '/admin/menu'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cuisine' | '/dashboard' | '/menu' | '/admin/login' | '/admin/menu'
+  to:
+    | '/'
+    | '/cuisine'
+    | '/dashboard'
+    | '/menu'
+    | '/admin/analytics'
+    | '/admin/login'
+    | '/admin/menu'
   id:
     | '__root__'
     | '/'
     | '/cuisine'
     | '/dashboard'
     | '/menu'
+    | '/admin/analytics'
     | '/admin/login'
     | '/admin/menu'
   fileRoutesById: FileRoutesById
@@ -98,6 +116,7 @@ export interface RootRouteChildren {
   CuisineRoute: typeof CuisineRoute
   DashboardRoute: typeof DashboardRoute
   MenuRoute: typeof MenuRoute
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMenuRoute: typeof AdminMenuRoute
 }
@@ -146,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -154,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   CuisineRoute: CuisineRoute,
   DashboardRoute: DashboardRoute,
   MenuRoute: MenuRoute,
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMenuRoute: AdminMenuRoute,
 }

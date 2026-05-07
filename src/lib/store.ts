@@ -19,12 +19,14 @@ export type TableStatus = "free" | "occupied" | "cooking" | "ready";
 
 type State = {
   orders: Order[];
+  archived: Order[];
   currentTable: string;
   addOrder: (o: Omit<Order, "id" | "createdAt" | "status" | "total"> & { status?: OrderStatus }) => string;
   advanceOrder: (id: string) => void;
   markPaid: (id: string) => void;
   setCurrentTable: (t: string) => void;
   reset: () => void;
+  clearHistory: () => void;
 };
 
 const NEXT: Record<OrderStatus, OrderStatus> = {
@@ -74,6 +76,7 @@ export const useStore = create<State>()(
   persist(
     (set) => ({
       orders: seed(),
+      archived: [],
       currentTable: "T7",
       addOrder: (o) => {
         const id = String(Math.floor(Math.random() * 900) + 100);
@@ -87,13 +90,28 @@ export const useStore = create<State>()(
         return id;
       },
       advanceOrder: (id) =>
-        set((st) => ({
-          orders: st.orders.map((o) => (o.id === id ? { ...o, status: NEXT[o.status] } : o)),
-        })),
+        set((st) => {
+          const order = st.orders.find((o) => o.id === id);
+          if (!order) return {};
+          const nextStatus = NEXT[order.status];
+          const updated = { ...order, status: nextStatus };
+          // When the order reaches "served", archive it (keep in orders too until paid? No, remove)
+          if (nextStatus === "served") {
+            return {
+              orders: st.orders.filter((o) => o.id !== id),
+              archived: [...st.archived, updated],
+            };
+          }
+          return { orders: st.orders.map((o) => (o.id === id ? updated : o)) };
+        }),
       markPaid: (id) =>
-        set((st) => ({ orders: st.orders.map((o) => (o.id === id ? { ...o, paid: true } : o)) })),
+        set((st) => ({
+          orders: st.orders.map((o) => (o.id === id ? { ...o, paid: true } : o)),
+          archived: st.archived.map((o) => (o.id === id ? { ...o, paid: true } : o)),
+        })),
       setCurrentTable: (t) => set({ currentTable: t }),
-      reset: () => set({ orders: seed() }),
+      reset: () => set((st) => ({ orders: seed(), archived: st.archived })),
+      clearHistory: () => set({ archived: [] }),
     }),
     {
       name: "tabli-store",
