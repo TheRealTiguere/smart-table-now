@@ -178,6 +178,22 @@ function IdentiteTab() {
           className="mt-5 w-full rounded-2xl bg-card px-4 py-3 text-[15px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
         />
       </div>
+
+      <div className="rounded-3xl bg-surface p-6 md:col-span-2">
+        <h3 className="font-display text-xl font-semibold tracking-tight">Fuseau horaire</h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Utilisé pour les plages horaires des formules (midi, soir, happy hour…).
+        </p>
+        <select
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          className="mt-5 w-full rounded-2xl bg-card px-4 py-3 text-[15px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+        >
+          {tzList.map((tz) => (
+            <option key={tz} value={tz}>{tz}</option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
