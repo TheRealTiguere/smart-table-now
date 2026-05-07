@@ -27,11 +27,13 @@ const ITEMS: Item[] = [
 const CATS = ["Tous", "Entrées", "Plats", "Desserts"];
 
 function ClientMenu() {
+  const mounted = useMounted();
   const search = Route.useSearch();
   const currentTable = useStore((s) => s.currentTable);
   const setCurrentTable = useStore((s) => s.setCurrentTable);
   const addOrder = useStore((s) => s.addOrder);
-  const myOrders = useStore((s) => s.orders.filter((o) => o.table === (search.table || currentTable) && o.status !== "served"));
+  const allOrders = useStore((s) => s.orders);
+  const myOrders = allOrders.filter((o) => o.table === (search.table || currentTable) && o.status !== "served");
 
   const table = search.table || currentTable;
   useEffect(() => {
