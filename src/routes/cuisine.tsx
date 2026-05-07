@@ -33,6 +33,8 @@ function KitchenView() {
   const mounted = useMounted();
   const allOrders = useStore((s) => s.orders);
   const advance = useStore((s) => s.advanceOrder);
+  const toggleItem = useStore((s) => s.toggleItemDone);
+  const validatePartial = useStore((s) => s.validatePartial);
   const orders = allOrders.filter((o) => o.status !== "served");
   const [, force] = useState(0);
 
@@ -53,6 +55,11 @@ function KitchenView() {
     advance(id);
     const next = status === "new" ? "préparation" : status === "cooking" ? "prête" : "servie";
     toast.success(`Commande #${id} · ${table}`, { description: `Statut : ${next}` });
+  };
+
+  const handlePartial = (id: string, table: string) => {
+    validatePartial(id);
+    toast.success(`Commande #${id} · ${table}`, { description: "Plats prêts envoyés en salle" });
   };
 
   return (
@@ -87,36 +94,57 @@ function KitchenView() {
                   <span className="font-display text-xl font-semibold tabular-nums text-muted-foreground">{list.length}</span>
                 </div>
                 <div className="space-y-3">
-                  {list.map((o) => (
-                    <article key={o.id} className="rounded-3xl bg-card p-5 shadow-soft transition-transform hover:-translate-y-0.5">
-                      <header className="flex items-baseline justify-between">
-                        <div>
-                          <p className="font-display text-2xl font-semibold tracking-tight">{o.table}</p>
-                          <p className="text-[11px] text-muted-foreground">#{o.id}</p>
-                        </div>
-                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Clock className="h-3 w-3" /> {timeAgo(o.createdAt)}
-                        </span>
-                      </header>
-                      <ul className="mt-4 space-y-1.5">
-                        {o.items.map((it, i) => (
-                          <li key={i} className="text-[14px] leading-relaxed">
-                            <span className="font-medium tabular-nums text-muted-foreground">{it.qty}×</span>{" "}
-                            <span>{it.name}</span>
-                            {it.note && <div className="mt-0.5 text-[12px] italic text-primary">{it.note}</div>}
-                          </li>
-                        ))}
-                      </ul>
-                      <button
-                        onClick={() => handle(o.id, o.status, o.table)}
-                        className={`mt-4 w-full rounded-full py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90 ${
-                          o.status === "ready" ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
-                        }`}
-                      >
-                        {ACTION[o.status]}
-                      </button>
-                    </article>
-                  ))}
+                  {list.map((o) => {
+                    const doneCount = o.items.filter((it) => it.done).length;
+                    const hasDone = doneCount > 0;
+                    const allDone = doneCount === o.items.length;
+                    return (
+                      <article key={o.id} className="rounded-3xl bg-card p-5 shadow-soft transition-transform hover:-translate-y-0.5">
+                        <header className="flex items-baseline justify-between">
+                          <div>
+                            <p className="font-display text-2xl font-semibold tracking-tight">{o.table}</p>
+                            <p className="text-[11px] text-muted-foreground">#{o.id}</p>
+                          </div>
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Clock className="h-3 w-3" /> {timeAgo(o.createdAt)}
+                          </span>
+                        </header>
+                        <ul className="mt-4 space-y-1.5">
+                          {o.items.map((it, i) => (
+                            <li key={i}>
+                              <button
+                                type="button"
+                                onClick={() => toggleItem(o.id, i)}
+                                className={`w-full text-left text-[14px] leading-relaxed transition-colors ${
+                                  it.done ? "text-muted-foreground line-through" : ""
+                                }`}
+                              >
+                                <span className="font-medium tabular-nums text-muted-foreground">{it.qty}×</span>{" "}
+                                <span>{it.name}</span>
+                                {it.note && <div className="mt-0.5 text-[12px] italic text-primary not-italic-when-done">{it.note}</div>}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                        {hasDone && !allDone && o.status !== "ready" && (
+                          <button
+                            onClick={() => handlePartial(o.id, o.table)}
+                            className="mt-3 w-full rounded-full border border-border bg-card py-2 text-[12px] font-medium text-muted-foreground hover:bg-secondary"
+                          >
+                            Envoyer les {doneCount} plat{doneCount > 1 ? "s" : ""} prêt{doneCount > 1 ? "s" : ""}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handle(o.id, o.status, o.table)}
+                          className={`mt-3 w-full rounded-full py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90 ${
+                            o.status === "ready" ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
+                          }`}
+                        >
+                          {ACTION[o.status]}
+                        </button>
+                      </article>
+                    );
+                  })}
                   {list.length === 0 && (
                     <div className="rounded-3xl border border-dashed border-border p-10 text-center text-[12px] text-muted-foreground">
                       Aucune commande

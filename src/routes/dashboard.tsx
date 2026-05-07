@@ -35,6 +35,8 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 function Dashboard() {
   const mounted = useMounted();
   const orders = useStore((s) => s.orders);
+  const archived = useStore((s) => s.archived);
+  const recallOrder = useStore((s) => s.recallOrder);
   const markPaid = useStore((s) => s.markPaid);
   const reset = useStore((s) => s.reset);
   const TABLE_IDS = useConfig((s) => s.tables);
@@ -322,6 +324,40 @@ function Dashboard() {
             </ul>
           )}
         </div>
+
+        {/* Recently served (recall window) */}
+        {archived.length > 0 && (
+          <div className="mt-4 rounded-3xl bg-surface p-6">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-2xl font-semibold tracking-tight">Récemment servies</h2>
+              <span className="text-[12px] text-muted-foreground">Cliquez sur « Rappeler » en cas d'erreur</span>
+            </div>
+            <ul className="mt-4 divide-y divide-border">
+              {[...archived].sort((a, b) => b.createdAt - a.createdAt).slice(0, 6).map((o) => (
+                <li key={o.id} className="flex items-center justify-between py-3.5 text-[14px]">
+                  <div>
+                    <p className="font-medium">{o.table} · #{o.id}</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {o.items.map((it) => `${it.qty}× ${it.name}`).join(" · ")} — {timeAgo(o.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-display text-[15px] font-semibold tabular-nums">{o.total}€</span>
+                    <button
+                      onClick={() => {
+                        recallOrder(o.id);
+                        toast.success(`Commande #${o.id} renvoyée en cuisine`);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[12px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+                    >
+                      <RotateCcw className="h-3 w-3" /> Rappeler
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Table detail sheet */}
@@ -346,7 +382,21 @@ function Dashboard() {
                     <li key={o.id} className="rounded-2xl bg-surface p-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[12px] font-medium text-muted-foreground">#{o.id} · {timeAgo(o.createdAt)}</span>
-                        <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
+                          {o.status === "ready" && (
+                            <button
+                              onClick={() => {
+                                recallOrder(o.id);
+                                toast.success(`Commande #${o.id} renvoyée en cuisine`);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border hover:bg-foreground hover:text-background"
+                              title="Renvoyer en préparation"
+                            >
+                              <RotateCcw className="h-3 w-3" /> Rappeler
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <ul className="mt-2 space-y-1 text-[13px]">
                         {o.items.map((it, i) => (
