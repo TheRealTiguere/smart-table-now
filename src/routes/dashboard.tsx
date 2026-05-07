@@ -1,51 +1,94 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { MockupNav } from "@/components/MockupNav";
-import { ArrowUpRight, ArrowDownRight, QrCode } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
   head: () => ({ meta: [{ title: "Pilotage" }] }),
 });
 
-const STATS = [
-  { label: "Chiffre d'affaires", value: "2 480€", delta: "+18%", up: true },
-  { label: "Commandes", value: "84", delta: "+12", up: true },
-  { label: "Tables actives", value: "11/16", delta: "live", up: true },
-  { label: "Temps moyen", value: "23 min", delta: "−4 min", up: false },
-];
+const TABLE_IDS = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
 
-const TABLES = [
-  { id: "T1", status: "occupied", total: 64 },
-  { id: "T2", status: "occupied", total: 32 },
-  { id: "T3", status: "cooking", total: 48 },
-  { id: "T4", status: "free", total: 0 },
-  { id: "T5", status: "free", total: 0 },
-  { id: "T6", status: "occupied", total: 92 },
-  { id: "T7", status: "cooking", total: 58 },
-  { id: "T8", status: "free", total: 0 },
-  { id: "T9", status: "ready", total: 24 },
-  { id: "T10", status: "occupied", total: 71 },
-  { id: "T11", status: "free", total: 0 },
-  { id: "T12", status: "cooking", total: 142 },
-] as const;
-
-const STATUS_DOT = {
+const STATUS_DOT: Record<TableStatus, string> = {
   free: "bg-border",
   occupied: "bg-muted-foreground",
   cooking: "bg-foreground",
   ready: "bg-primary",
-} as const;
+};
 
-const STATUS_LABEL = { free: "Libre", occupied: "En salle", cooking: "Cuisine", ready: "À servir" };
-
-const TOP = [
-  { name: "Tagliatelles truffe", qty: 28, revenue: 616 },
-  { name: "Tiramisu maison", qty: 22, revenue: 176 },
-  { name: "Burrata di Puglia", qty: 19, revenue: 266 },
-  { name: "Risotto Milanese", qty: 14, revenue: 266 },
-];
+const STATUS_LABEL: Record<TableStatus, string> = {
+  free: "Libre",
+  occupied: "En salle",
+  cooking: "Cuisine",
+  ready: "À servir",
+};
 
 function Dashboard() {
+  const orders = useStore((s) => s.orders);
+  const markPaid = useStore((s) => s.markPaid);
+  const reset = useStore((s) => s.reset);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  const stats = useMemo(() => {
+    const today = orders.filter((o) => o.status !== "served" || o.paid);
+    const revenue = orders.reduce((s, o) => s + o.total, 0);
+    const activeTables = TABLE_IDS.filter((t) => tableStatus(orders, t) !== "free").length;
+    const avgMin = orders.length
+      ? Math.round(orders.reduce((s, o) => s + (Date.now() - o.createdAt) / 60_000, 0) / orders.length)
+      : 0;
+    return [
+      { label: "Chiffre d'affaires", value: `${revenue}€`, delta: "+18%", up: true },
+      { label: "Commandes", value: String(today.length), delta: `+${today.length}`, up: true },
+      { label: "Tables actives", value: `${activeTables}/${TABLE_IDS.length}`, delta: "live", up: true },
+      { label: "Temps moyen", value: `${avgMin} min`, delta: "−4 min", up: false },
+    ];
+  }, [orders]);
+
+  const top = useMemo(() => {
+    const map = new Map<string, { name: string; qty: number; revenue: number }>();
+    orders.forEach((o) =>
+      o.items.forEach((it) => {
+        const cur = map.get(it.name) ?? { name: it.name, qty: 0, revenue: 0 };
+        cur.qty += it.qty;
+        cur.revenue += it.qty * it.price;
+        map.set(it.name, cur);
+      }),
+    );
+    return [...map.values()].sort((a, b) => b.qty - a.qty).slice(0, 5);
+  }, [orders]);
+
+  const activity = useMemo(() => {
+    return [...orders]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 6)
+      .map((o) => ({
+        t: timeAgo(o.createdAt),
+        e:
+          o.status === "ready"
+            ? `Cuisine a marqué ${o.table} prête`
+            : o.status === "cooking"
+              ? `${o.table} en préparation`
+              : o.status === "served"
+                ? `${o.table} servie${o.paid ? " · payée" : ""}`
+                : `${o.table} a passé une commande`,
+        a: `${o.total}€`,
+      }));
+  }, [orders]);
+
+  const selectedOrders = selected ? orders.filter((o) => o.table === selected && o.status !== "served") : [];
+  const selectedTotal = selectedOrders.reduce((s, o) => s + o.total, 0);
+
+  const handlePay = () => {
+    if (!selected) return;
+    selectedOrders.forEach((o) => markPaid(o.id));
+    toast.success(`Table ${selected.replace("T", "")} encaissée`, { description: `${selectedTotal}€` });
+    setSelected(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <MockupNav />
@@ -57,14 +100,25 @@ function Dashboard() {
             <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">Bonsoir, Marco.</h1>
             <p className="mt-2 text-[15px] text-muted-foreground">Voici votre service en un coup d'œil.</p>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-[13px] font-medium text-background">
-            <QrCode className="h-4 w-4" /> Imprimer les QR
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => reset()}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Réinitialiser
+            </button>
+            <button
+              onClick={() => setQrOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
+            >
+              <QrCode className="h-4 w-4" /> Imprimer les QR
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <div key={s.label} className="rounded-3xl bg-surface p-6">
               <p className="text-[13px] text-muted-foreground">{s.label}</p>
               <p className="mt-3 font-display text-4xl font-semibold tracking-tight tabular-nums">{s.value}</p>
@@ -82,72 +136,176 @@ function Dashboard() {
             <div className="flex items-baseline justify-between">
               <h2 className="font-display text-2xl font-semibold tracking-tight">Plan de salle</h2>
               <div className="flex flex-wrap gap-3 text-[11px]">
-                {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                {(Object.keys(STATUS_LABEL) as TableStatus[]).map((k) => (
                   <span key={k} className="inline-flex items-center gap-1.5 text-muted-foreground">
-                    <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[k as keyof typeof STATUS_DOT]}`} />
-                    {v}
+                    <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[k]}`} />
+                    {STATUS_LABEL[k]}
                   </span>
                 ))}
               </div>
             </div>
             <div className="mt-6 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-              {TABLES.map((t) => (
-                <div key={t.id} className="group relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-card p-3 text-center shadow-xs transition-transform hover:-translate-y-0.5">
-                  <span className={`absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full ${STATUS_DOT[t.status]}`} />
-                  <span className="font-display text-2xl font-semibold tracking-tight">{t.id}</span>
-                  <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[t.status]}</span>
-                  {t.total > 0 && <span className="mt-1 text-[11px] font-medium tabular-nums">{t.total}€</span>}
-                </div>
-              ))}
+              {TABLE_IDS.map((id) => {
+                const status = tableStatus(orders, id);
+                const total = tableTotal(orders, id);
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setSelected(id)}
+                    className="group relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-card p-3 text-center shadow-xs transition-transform hover:-translate-y-0.5"
+                  >
+                    <span className={`absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full ${STATUS_DOT[status]}`} />
+                    <span className="font-display text-2xl font-semibold tracking-tight">{id}</span>
+                    <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span>
+                    {total > 0 && <span className="mt-1 text-[11px] font-medium tabular-nums">{total}€</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Top */}
           <div className="rounded-3xl bg-surface p-6">
             <h2 className="font-display text-2xl font-semibold tracking-tight">Top du jour</h2>
-            <ul className="mt-6 space-y-5">
-              {TOP.map((p, i) => {
-                const max = TOP[0].qty;
-                return (
-                  <li key={p.name}>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="flex items-center gap-2.5">
-                        <span className="font-display text-[11px] font-semibold text-muted-foreground tabular-nums">{String(i + 1).padStart(2, "0")}</span>
-                        <span className="font-medium">{p.name}</span>
-                      </span>
-                      <span className="font-medium tabular-nums">{p.revenue}€</span>
-                    </div>
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-card">
-                      <div className="h-full rounded-full bg-foreground" style={{ width: `${(p.qty / max) * 100}%` }} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            {top.length === 0 ? (
+              <p className="mt-6 text-[13px] text-muted-foreground">Aucune vente pour l'instant.</p>
+            ) : (
+              <ul className="mt-6 space-y-5">
+                {top.map((p, i) => {
+                  const max = top[0].qty;
+                  return (
+                    <li key={p.name}>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="flex items-center gap-2.5">
+                          <span className="font-display text-[11px] font-semibold text-muted-foreground tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                          <span className="font-medium">{p.name}</span>
+                        </span>
+                        <span className="font-medium tabular-nums">{p.revenue}€</span>
+                      </div>
+                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-card">
+                        <div className="h-full rounded-full bg-foreground" style={{ width: `${(p.qty / max) * 100}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
 
         {/* Activity */}
         <div className="mt-4 rounded-3xl bg-surface p-6">
           <h2 className="font-display text-2xl font-semibold tracking-tight">Activité</h2>
-          <ul className="mt-4 divide-y divide-border">
-            {[
-              { t: "il y a 1 min", e: "Table 7 a passé une commande", a: "58€" },
-              { t: "il y a 4 min", e: "Table 12 — paiement reçu", a: "142€" },
-              { t: "il y a 7 min", e: "Cuisine a marqué Table 9 prête", a: "" },
-              { t: "il y a 11 min", e: "Table 3 a ajouté 2 desserts", a: "+16€" },
-            ].map((r, i) => (
-              <li key={i} className="flex items-center justify-between py-3.5 text-[14px]">
-                <div>
-                  <p className="font-medium">{r.e}</p>
-                  <p className="text-[12px] text-muted-foreground">{r.t}</p>
-                </div>
-                {r.a && <span className="font-display text-[15px] font-semibold tabular-nums">{r.a}</span>}
-              </li>
-            ))}
-          </ul>
+          {activity.length === 0 ? (
+            <p className="mt-4 text-[13px] text-muted-foreground">Pas d'activité pour le moment.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border">
+              {activity.map((r, i) => (
+                <li key={i} className="flex items-center justify-between py-3.5 text-[14px]">
+                  <div>
+                    <p className="font-medium">{r.e}</p>
+                    <p className="text-[12px] text-muted-foreground">{r.t}</p>
+                  </div>
+                  {r.a && <span className="font-display text-[15px] font-semibold tabular-nums">{r.a}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
+
+      {/* Table detail sheet */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 backdrop-blur-sm sm:items-center" onClick={() => setSelected(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-[2rem] bg-card p-6 shadow-pop animate-in slide-in-from-bottom sm:rounded-3xl">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border sm:hidden" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Table {selected.replace("T", "")}</p>
+                <h3 className="mt-1 font-display text-2xl font-semibold tracking-tight">{STATUS_LABEL[tableStatus(orders, selected)]}</h3>
+              </div>
+              <button onClick={() => setSelected(null)} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
+            </div>
+
+            {selectedOrders.length === 0 ? (
+              <p className="mt-6 text-center text-[14px] text-muted-foreground">Aucune commande active.</p>
+            ) : (
+              <>
+                <ul className="mt-5 space-y-4">
+                  {selectedOrders.map((o) => (
+                    <li key={o.id} className="rounded-2xl bg-surface p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-medium text-muted-foreground">#{o.id} · {timeAgo(o.createdAt)}</span>
+                        <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
+                      </div>
+                      <ul className="mt-2 space-y-1 text-[13px]">
+                        {o.items.map((it, i) => (
+                          <li key={i} className="flex justify-between">
+                            <span><span className="tabular-nums text-muted-foreground">{it.qty}× </span>{it.name}</span>
+                            <span className="tabular-nums">{it.qty * it.price}€</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                  <span className="text-[14px] text-muted-foreground">Addition</span>
+                  <span className="font-display text-2xl font-semibold tabular-nums">{selectedTotal}€</span>
+                </div>
+                <button onClick={handlePay} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-4 text-[15px] font-medium text-background transition-opacity hover:opacity-90">
+                  <Check className="h-4 w-4" /> Encaisser
+                </button>
+              </>
+            )}
+
+            <Link
+              to="/menu"
+              search={{ table: selected }}
+              onClick={() => setSelected(null)}
+              className="mt-3 block text-center text-[12px] text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Ouvrir le menu de cette table →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* QR sheet */}
+      {qrOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4" onClick={() => setQrOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-3xl bg-card p-6 shadow-pop animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-2xl font-semibold tracking-tight">QR codes des tables</h3>
+              <button onClick={() => setQrOpen(false)} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-1 text-[13px] text-muted-foreground">Imprimez et collez sur chaque table.</p>
+            <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {TABLE_IDS.map((id) => (
+                <div key={id} className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-4">
+                  <div
+                    className="h-20 w-20 rounded-lg"
+                    style={{
+                      background:
+                        "repeating-conic-gradient(var(--foreground) 0% 25%, var(--card) 0% 50%) 50% / 8px 8px",
+                    }}
+                  />
+                  <span className="font-display text-[15px] font-semibold">{id}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                window.print();
+                toast.success("Impression lancée");
+              }}
+              className="mt-5 w-full rounded-2xl bg-foreground py-3.5 text-[14px] font-medium text-background transition-opacity hover:opacity-90"
+            >
+              Imprimer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
