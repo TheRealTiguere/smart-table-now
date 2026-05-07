@@ -78,6 +78,7 @@ type ConfigState = {
   restaurantName: string;
   logo?: string; // dataURL
   timezone: string; // IANA tz, e.g. "Europe/Paris"
+  tables: string[];
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
@@ -85,6 +86,10 @@ type ConfigState = {
   setRestaurantName: (n: string) => void;
   setLogo: (logo?: string) => void;
   setTimezone: (tz: string) => void;
+
+  addTable: (name: string) => void;
+  removeTable: (name: string) => void;
+  renameTable: (oldName: string, newName: string) => void;
 
   addCategory: (name: string) => void;
   renameCategory: (id: string, name: string) => void;
