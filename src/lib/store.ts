@@ -169,19 +169,25 @@ export const useStore = create<State>()(
         }),
       markPaid: (id, payment) =>
         set((st) => {
-          const apply = (o: Order) =>
-            o.id === id
-              ? {
-                  ...o,
-                  paid: true,
-                  paidAt: o.paidAt ?? Date.now(),
-                  paymentMethod: payment?.method ?? o.paymentMethod ?? "card",
-                  receiptNumber: payment?.receiptNumber ?? o.receiptNumber,
-                }
-              : o;
+          const stamp = (o: Order): Order => ({
+            ...o,
+            paid: true,
+            paidAt: o.paidAt ?? Date.now(),
+            paymentMethod: payment?.method ?? o.paymentMethod ?? "card",
+            receiptNumber: payment?.receiptNumber ?? o.receiptNumber,
+            status: "served",
+          });
+          // If the order is still active, move it to archived (clears the table)
+          const active = st.orders.find((o) => o.id === id);
+          if (active) {
+            return {
+              orders: st.orders.filter((o) => o.id !== id),
+              archived: [...st.archived, stamp(active)],
+            };
+          }
+          // Otherwise it's already archived — just update payment fields
           return {
-            orders: st.orders.map(apply),
-            archived: st.archived.map(apply),
+            archived: st.archived.map((o) => (o.id === id ? stamp(o) : o)),
           };
         }),
       setOrderEmail: (id, email) =>
