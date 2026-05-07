@@ -92,7 +92,7 @@ export const useStore = create<State>()(
         set((st) => ({
           orders: [
             ...st.orders,
-            { id, table: o.table, items: o.items, status: o.status ?? "new", createdAt: Date.now(), total },
+            { id, table: o.table, items: o.items, status: o.status ?? "new", createdAt: Date.now(), total, customerEmail: o.customerEmail },
           ],
         }));
         return id;
