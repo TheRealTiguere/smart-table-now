@@ -3,6 +3,7 @@ import { MockupNav } from "@/components/MockupNav";
 import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -27,6 +28,7 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 };
 
 function Dashboard() {
+  const mounted = useMounted();
   const orders = useStore((s) => s.orders);
   const markPaid = useStore((s) => s.markPaid);
   const reset = useStore((s) => s.reset);
@@ -88,6 +90,14 @@ function Dashboard() {
     toast.success(`Table ${selected.replace("T", "")} encaissée`, { description: `${selectedTotal}€` });
     setSelected(null);
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MockupNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

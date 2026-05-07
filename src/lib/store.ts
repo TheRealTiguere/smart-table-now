@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export type OrderStatus = "new" | "cooking" | "ready" | "served";
 
@@ -95,9 +95,28 @@ export const useStore = create<State>()(
       setCurrentTable: (t) => set({ currentTable: t }),
       reset: () => set({ orders: seed() }),
     }),
-    { name: "tabli-store" },
+    {
+      name: "tabli-store",
+      storage: typeof window !== "undefined"
+        ? createJSONStorage(() => localStorage)
+        : undefined,
+      skipHydration: true,
+    },
   ),
 );
+
+import { useEffect, useState } from "react";
+
+export function useHydratedStore<T>(selector: (s: State) => T): T | undefined {
+  const value = useStore(selector);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    useStore.persist.rehydrate();
+    setHydrated(true);
+  }, []);
+  return hydrated ? value : undefined;
+}
+
 
 export function timeAgo(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000);

@@ -3,6 +3,7 @@ import { MockupNav } from "@/components/MockupNav";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/menu")({
@@ -26,11 +27,13 @@ const ITEMS: Item[] = [
 const CATS = ["Tous", "Entrées", "Plats", "Desserts"];
 
 function ClientMenu() {
+  const mounted = useMounted();
   const search = Route.useSearch();
   const currentTable = useStore((s) => s.currentTable);
   const setCurrentTable = useStore((s) => s.setCurrentTable);
   const addOrder = useStore((s) => s.addOrder);
-  const myOrders = useStore((s) => s.orders.filter((o) => o.table === (search.table || currentTable) && o.status !== "served"));
+  const allOrders = useStore((s) => s.orders);
+  const myOrders = allOrders.filter((o) => o.table === (search.table || currentTable) && o.status !== "served");
 
   const table = search.table || currentTable;
   useEffect(() => {
@@ -79,6 +82,14 @@ function ClientMenu() {
     });
     setTimeout(() => setSent(false), 2500);
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background pb-32">
+        <MockupNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-32">
