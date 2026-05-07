@@ -120,7 +120,15 @@ const seedDishes: Dish[] = [
 ];
 
 const seedFormulas: Formula[] = [
-  { id: "f1", name: "Menu du midi", desc: "Entrée + Plat ou Plat + Dessert", price: 24, dishIds: ["d1", "d4"], available: true },
+  {
+    id: "f1",
+    name: "Menu du midi",
+    desc: "Entrée + Plat ou Plat + Dessert",
+    price: 24,
+    dishIds: ["d1", "d4"],
+    available: true,
+    schedules: [{ days: [1, 2, 3, 4, 5], start: "12:00", end: "14:30" }],
+  },
 ];
 
 export const useConfig = create<ConfigState>()(
@@ -128,12 +136,14 @@ export const useConfig = create<ConfigState>()(
     (set) => ({
       restaurantName: "La Trattoria",
       logo: undefined,
+      timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "Europe/Paris",
       categories: seedCategories,
       dishes: seedDishes,
       formulas: seedFormulas,
 
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
+      setTimezone: (tz) => set({ timezone: tz }),
 
       addCategory: (name) =>
         set((s) => ({
