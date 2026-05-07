@@ -14,7 +14,368 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_users: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string | null
+          id: string
+          last_login_at: string | null
+          password_hash: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string | null
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_login_at?: string | null
+          password_hash: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string | null
+          username: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_login_at?: string | null
+          password_hash?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dishes: {
+        Row: {
+          allergens: string[]
+          available: boolean
+          category_id: string | null
+          created_at: string
+          custom_allergens: string[]
+          description: string
+          id: string
+          name: string
+          photo: string | null
+          price: number
+          tags: string[]
+          tenant_id: string
+        }
+        Insert: {
+          allergens?: string[]
+          available?: boolean
+          category_id?: string | null
+          created_at?: string
+          custom_allergens?: string[]
+          description?: string
+          id?: string
+          name: string
+          photo?: string | null
+          price?: number
+          tags?: string[]
+          tenant_id: string
+        }
+        Update: {
+          allergens?: string[]
+          available?: boolean
+          category_id?: string | null
+          created_at?: string
+          custom_allergens?: string[]
+          description?: string
+          id?: string
+          name?: string
+          photo?: string | null
+          price?: number
+          tags?: string[]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dishes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formulas: {
+        Row: {
+          available: boolean
+          created_at: string
+          description: string
+          dish_ids: string[]
+          id: string
+          name: string
+          price: number
+          schedules: Json
+          tenant_id: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          description?: string
+          dish_ids?: string[]
+          id?: string
+          name: string
+          price?: number
+          schedules?: Json
+          tenant_id: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          description?: string
+          dish_ids?: string[]
+          id?: string
+          name?: string
+          price?: number
+          schedules?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formulas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          id: string
+          kind: string
+          name: string
+          note: string | null
+          order_id: string
+          price: number
+          qty: number
+          ref_id: string | null
+        }
+        Insert: {
+          id?: string
+          kind: string
+          name: string
+          note?: string | null
+          order_id: string
+          price: number
+          qty?: number
+          ref_id?: string | null
+        }
+        Update: {
+          id?: string
+          kind?: string
+          name?: string
+          note?: string | null
+          order_id?: string
+          price?: number
+          qty?: number
+          ref_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          id: string
+          paid: boolean
+          status: string
+          table_name: string
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          paid?: boolean
+          status?: string
+          table_name: string
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          paid?: boolean
+          status?: string
+          table_name?: string
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tables_layout: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tables_layout_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          logo: string | null
+          name: string
+          slug: string
+          source_url: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          logo?: string | null
+          name: string
+          slug: string
+          source_url?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          logo?: string | null
+          name?: string
+          slug?: string
+          source_url?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +384,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "restaurant_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +511,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "restaurant_admin"],
+    },
   },
 } as const
