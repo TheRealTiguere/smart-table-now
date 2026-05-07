@@ -115,7 +115,11 @@ function ClientMenu() {
       price: linePrice(l),
       qty: l.qty,
     }));
-    const orderId = addOrder({ table, items });
+    const email = customerEmail.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return toast.error("Email invalide");
+    }
+    const orderId = addOrder({ table, items, customerEmail: email || undefined });
     setCart([]);
     setOpen(false);
     setSent(true);
