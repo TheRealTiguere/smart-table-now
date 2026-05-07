@@ -238,8 +238,11 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_email: string | null
           id: string
           paid: boolean
+          payment_method: string | null
+          receipt_number: string | null
           status: string
           table_name: string
           tenant_id: string
@@ -248,8 +251,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_email?: string | null
           id?: string
           paid?: boolean
+          payment_method?: string | null
+          receipt_number?: string | null
           status?: string
           table_name: string
           tenant_id: string
@@ -258,8 +264,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_email?: string | null
           id?: string
           paid?: boolean
+          payment_method?: string | null
+          receipt_number?: string | null
           status?: string
           table_name?: string
           tenant_id?: string
@@ -343,35 +352,59 @@ export type Database = {
       tenants: {
         Row: {
           active: boolean
+          address: string | null
           created_at: string
+          email: string | null
           id: string
+          invoice_counter: number
           logo: string | null
           name: string
+          phone: string | null
+          receipt_footer: string | null
+          siret: string | null
           slug: string
           source_url: string | null
           timezone: string
+          tva_number: string | null
+          tva_rate: number
           updated_at: string
         }
         Insert: {
           active?: boolean
+          address?: string | null
           created_at?: string
+          email?: string | null
           id?: string
+          invoice_counter?: number
           logo?: string | null
           name: string
+          phone?: string | null
+          receipt_footer?: string | null
+          siret?: string | null
           slug: string
           source_url?: string | null
           timezone?: string
+          tva_number?: string | null
+          tva_rate?: number
           updated_at?: string
         }
         Update: {
           active?: boolean
+          address?: string | null
           created_at?: string
+          email?: string | null
           id?: string
+          invoice_counter?: number
           logo?: string | null
           name?: string
+          phone?: string | null
+          receipt_footer?: string | null
+          siret?: string | null
           slug?: string
           source_url?: string | null
           timezone?: string
+          tva_number?: string | null
+          tva_rate?: number
           updated_at?: string
         }
         Relationships: []
@@ -381,7 +414,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      next_receipt_number: { Args: { p_tenant: string }; Returns: string }
     }
     Enums: {
       app_role: "super_admin" | "restaurant_admin" | "kitchen"
