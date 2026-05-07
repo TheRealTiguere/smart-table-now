@@ -10,6 +10,8 @@ import {
   type Dish,
   type Formula,
   type Tag,
+  type Schedule,
+  DAY_LABELS,
 } from "@/lib/config-store";
 import { Plus, Trash2, Image as ImageIcon, X, ArrowUp, ArrowDown, Pencil, Check, Leaf, Flame, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
