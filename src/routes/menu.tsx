@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check, Image as ImageIcon, Info } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { useConfig, useConfigHydrated, ALLERGEN_LABELS } from "@/lib/config-store";
+import { useConfig, useConfigHydrated, ALLERGEN_LABELS, isFormulaActiveNow } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
