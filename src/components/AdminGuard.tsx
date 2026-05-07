@@ -1,16 +1,32 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { useAdmin } from "@/lib/admin-auth";
+import { useMe } from "@/lib/use-me";
 
-export function AdminGuard({ children }: { children: ReactNode }) {
-  const { isAdmin, ready } = useAdmin();
+export function AdminGuard({
+  children,
+  requireRole,
+}: {
+  children: ReactNode;
+  requireRole?: "super_admin" | "restaurant_admin";
+}) {
+  const { data: me, isLoading } = useMe();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (ready && !isAdmin) navigate({ to: "/admin/login" });
-  }, [ready, isAdmin, navigate]);
+    if (isLoading) return;
+    if (!me) {
+      navigate({ to: "/admin/login" });
+      return;
+    }
+    if (requireRole === "super_admin" && me.role !== "super_admin") {
+      navigate({ to: "/dashboard" });
+    }
+  }, [isLoading, me, navigate, requireRole]);
 
-  if (!ready || !isAdmin) {
+  if (isLoading || !me) {
+    return <div className="min-h-screen bg-background" />;
+  }
+  if (requireRole === "super_admin" && me.role !== "super_admin") {
     return <div className="min-h-screen bg-background" />;
   }
   return <>{children}</>;

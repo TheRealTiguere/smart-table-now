@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CuisineRouteImport } from './routes/cuisine'
@@ -17,6 +19,16 @@ import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
   path: '/menu',
@@ -58,6 +70,8 @@ export interface FileRoutesByFullPath {
   '/cuisine': typeof CuisineRoute
   '/dashboard': typeof DashboardRoute
   '/menu': typeof MenuRoute
+  '/setup': typeof SetupRoute
+  '/super-admin': typeof SuperAdminRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -67,6 +81,8 @@ export interface FileRoutesByTo {
   '/cuisine': typeof CuisineRoute
   '/dashboard': typeof DashboardRoute
   '/menu': typeof MenuRoute
+  '/setup': typeof SetupRoute
+  '/super-admin': typeof SuperAdminRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -77,6 +93,8 @@ export interface FileRoutesById {
   '/cuisine': typeof CuisineRoute
   '/dashboard': typeof DashboardRoute
   '/menu': typeof MenuRoute
+  '/setup': typeof SetupRoute
+  '/super-admin': typeof SuperAdminRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -88,6 +106,8 @@ export interface FileRouteTypes {
     | '/cuisine'
     | '/dashboard'
     | '/menu'
+    | '/setup'
+    | '/super-admin'
     | '/admin/analytics'
     | '/admin/login'
     | '/admin/menu'
@@ -97,6 +117,8 @@ export interface FileRouteTypes {
     | '/cuisine'
     | '/dashboard'
     | '/menu'
+    | '/setup'
+    | '/super-admin'
     | '/admin/analytics'
     | '/admin/login'
     | '/admin/menu'
@@ -106,6 +128,8 @@ export interface FileRouteTypes {
     | '/cuisine'
     | '/dashboard'
     | '/menu'
+    | '/setup'
+    | '/super-admin'
     | '/admin/analytics'
     | '/admin/login'
     | '/admin/menu'
@@ -116,6 +140,8 @@ export interface RootRouteChildren {
   CuisineRoute: typeof CuisineRoute
   DashboardRoute: typeof DashboardRoute
   MenuRoute: typeof MenuRoute
+  SetupRoute: typeof SetupRoute
+  SuperAdminRoute: typeof SuperAdminRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMenuRoute: typeof AdminMenuRoute
@@ -123,6 +149,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/menu': {
       id: '/menu'
       path: '/menu'
@@ -180,6 +220,8 @@ const rootRouteChildren: RootRouteChildren = {
   CuisineRoute: CuisineRoute,
   DashboardRoute: DashboardRoute,
   MenuRoute: MenuRoute,
+  SetupRoute: SetupRoute,
+  SuperAdminRoute: SuperAdminRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMenuRoute: AdminMenuRoute,

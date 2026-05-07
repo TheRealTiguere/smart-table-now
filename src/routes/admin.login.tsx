@@ -1,8 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "@tanstack/react-router";
-import { Lock, ArrowLeft } from "lucide-react";
-import { login, isAdmin } from "@/lib/admin-auth";
+import { Lock, User, ArrowLeft } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { loginFn, setupStatusFn } from "@/lib/auth.functions";
+import { useMe } from "@/lib/use-me";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/login")({
@@ -12,21 +14,38 @@ export const Route = createFileRoute("/admin/login")({
 
 function AdminLogin() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const login = useServerFn(loginFn);
+  const status = useServerFn(setupStatusFn);
+  const { data: me } = useMe();
+
+  const [username, setUsername] = useState("");
   const [pwd, setPwd] = useState("");
-  const [err, setErr] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (isAdmin()) navigate({ to: "/dashboard" });
-  }, [navigate]);
+    status().then((s) => {
+      if (s.needsSetup) navigate({ to: "/setup" });
+    });
+  }, [status, navigate]);
 
-  const submit = (e: FormEvent) => {
+  useEffect(() => {
+    if (me) {
+      navigate({ to: me.role === "super_admin" ? "/super-admin" : "/dashboard" });
+    }
+  }, [me, navigate]);
+
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (login(pwd)) {
+    setBusy(true);
+    try {
+      const res = await login({ data: { username, password: pwd } });
+      await qc.invalidateQueries({ queryKey: ["me"] });
       toast.success("Connecté");
-      navigate({ to: "/dashboard" });
-    } else {
-      setErr(true);
-      toast.error("Mot de passe incorrect");
+      navigate({ to: res.role === "super_admin" ? "/super-admin" : "/dashboard" });
+    } catch (err) {
+      toast.error((err as Error).message);
+      setBusy(false);
     }
   };
 
@@ -44,31 +63,37 @@ function AdminLogin() {
 
         <h1 className="mt-8 font-display text-4xl font-semibold tracking-tight">Espace équipe</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
-          Connectez-vous pour accéder au pilotage et à la cuisine.
+          Connectez-vous avec votre identifiant.
         </p>
 
         <form onSubmit={submit} className="mt-8 space-y-3">
           <div className="relative">
+            <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              autoFocus
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Identifiant"
+              className="w-full rounded-2xl bg-surface py-3.5 pl-11 pr-4 text-[15px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
+            />
+          </div>
+          <div className="relative">
             <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="password"
-              autoFocus
               value={pwd}
-              onChange={(e) => {
-                setPwd(e.target.value);
-                setErr(false);
-              }}
+              onChange={(e) => setPwd(e.target.value)}
               placeholder="Mot de passe"
-              className={`w-full rounded-2xl bg-surface py-3.5 pl-11 pr-4 text-[15px] outline-none ring-1 ring-inset transition-colors ${
-                err ? "ring-destructive" : "ring-border focus:ring-foreground"
-              }`}
+              className="w-full rounded-2xl bg-surface py-3.5 pl-11 pr-4 text-[15px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
             />
           </div>
           <button
             type="submit"
-            className="w-full rounded-2xl bg-foreground py-3.5 text-[15px] font-medium text-background transition-opacity hover:opacity-90"
+            disabled={busy}
+            className="w-full rounded-2xl bg-foreground py-3.5 text-[15px] font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            Se connecter
+            {busy ? "Connexion..." : "Se connecter"}
           </button>
         </form>
 
