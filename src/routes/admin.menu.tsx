@@ -13,8 +13,9 @@ import {
   type Schedule,
   DAY_LABELS,
 } from "@/lib/config-store";
-import { Plus, Trash2, Image as ImageIcon, X, ArrowUp, ArrowDown, Pencil, Check, Leaf, Flame, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Image as ImageIcon, X, ArrowUp, ArrowDown, Pencil, Check, Leaf, Flame, Eye, EyeOff, Download } from "lucide-react";
 import { toast } from "sonner";
+import { ImportMenuModal } from "@/components/ImportMenuModal";
 
 export const Route = createFileRoute("/admin/menu")({
   component: () => (
