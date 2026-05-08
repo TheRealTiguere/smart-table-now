@@ -7,6 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
 import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
+import { useMe } from "@/lib/use-me";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -34,6 +35,7 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 
 function Dashboard() {
   const mounted = useMounted();
+  const { data: me } = useMe();
   const orders = useStore((s) => s.orders);
   const archived = useStore((s) => s.archived);
   const recallOrder = useStore((s) => s.recallOrder);
