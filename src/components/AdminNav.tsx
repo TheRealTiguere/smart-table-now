@@ -1,9 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, Moon, Sun } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { logoutFn } from "@/lib/auth.functions";
 import { useMe } from "@/lib/use-me";
+import { useTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
 
 const mainLinks = [
