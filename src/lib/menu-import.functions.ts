@@ -48,7 +48,7 @@ export const scrapeMenu = createServerFn({ method: "POST" })
         ? "deliveroo"
         : "web";
 
-    // Use Firecrawl REST v2 with JSON extraction (LLM-powered, no fragile DOM parsing)
+    // Step 1: scrape full markdown via Firecrawl (no LLM truncation)
     const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: {
@@ -58,35 +58,8 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       body: JSON.stringify({
         url,
         onlyMainContent: false,
-        waitFor: 6000,
-        formats: [
-          {
-            type: "json",
-            prompt:
-              "Extract the restaurant menu. Return restaurantName (string) and dishes (array). Each dish has: name (string), description (string, may be empty), price (number in EUROS, e.g. 12.5 — never cents, never strings, never including the currency symbol), photo (full https URL of the dish image if present, omit otherwise), category (the menu section/category name the dish belongs to, e.g. 'Entrées', 'Pizzas', 'Desserts'). Keep dishes in the order they appear and group them by category.",
-            schema: {
-              type: "object",
-              properties: {
-                restaurantName: { type: "string" },
-                dishes: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      name: { type: "string" },
-                      description: { type: "string" },
-                      price: { type: "number" },
-                      photo: { type: "string" },
-                      category: { type: "string" },
-                    },
-                    required: ["name", "price", "category"],
-                  },
-                },
-              },
-              required: ["restaurantName", "dishes"],
-            },
-          },
-        ],
+        waitFor: 8000,
+        formats: ["markdown"],
       }),
     });
 
@@ -102,8 +75,9 @@ export const scrapeMenu = createServerFn({ method: "POST" })
 
     const payload = (await res.json()) as {
       success?: boolean;
-      data?: { json?: unknown; metadata?: { title?: string } };
-      json?: unknown;
+      data?: { markdown?: string; metadata?: { title?: string } };
+      markdown?: string;
+      metadata?: { title?: string };
       error?: string;
     };
 
@@ -111,7 +85,96 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       throw new Error(payload.error || "Firecrawl: extraction impossible.");
     }
 
-    const raw = payload.data?.json ?? payload.json;
+    const markdown = payload.data?.markdown ?? payload.markdown ?? "";
+    const pageTitle = payload.data?.metadata?.title ?? payload.metadata?.title;
+    if (!markdown || markdown.length < 100) {
+      throw new Error("Page vide ou inaccessible. Vérifie l'URL.");
+    }
+
+    // Step 2: extract dishes from markdown via Lovable AI (Gemini 2.5 Pro — large context)
+    const aiKey = process.env.LOVABLE_API_KEY;
+    if (!aiKey) throw new Error("LOVABLE_API_KEY manquante.");
+
+    // Truncate very large pages to fit context safely
+    const content = markdown.slice(0, 200_000);
+
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${aiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-pro",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You extract restaurant menus from markdown. Return STRICT JSON matching the provided tool schema. Include EVERY dish present, do not skip any. Prices are in EUROS as numbers (e.g. 12.5), never strings, never cents. Group by category (the menu section header). If a dish has no description, use empty string.",
+          },
+          {
+            role: "user",
+            content: `Extract ALL dishes from this restaurant menu page.\n\nPage title: ${pageTitle ?? ""}\n\nMARKDOWN:\n${content}`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "return_menu",
+              description: "Return the complete extracted menu",
+              parameters: {
+                type: "object",
+                properties: {
+                  restaurantName: { type: "string" },
+                  dishes: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        description: { type: "string" },
+                        price: { type: "number" },
+                        photo: { type: "string" },
+                        category: { type: "string" },
+                      },
+                      required: ["name", "price", "category"],
+                    },
+                  },
+                },
+                required: ["restaurantName", "dishes"],
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "return_menu" } },
+      }),
+    });
+
+    if (!aiRes.ok) {
+      const t = await aiRes.text().catch(() => "");
+      if (aiRes.status === 402)
+        throw new Error("Crédits Lovable AI insuffisants.");
+      if (aiRes.status === 429)
+        throw new Error("Trop de requêtes Lovable AI, réessaie dans un instant.");
+      throw new Error(`Lovable AI a échoué (${aiRes.status}): ${t.slice(0, 200)}`);
+    }
+
+    const aiJson = (await aiRes.json()) as {
+      choices?: Array<{
+        message?: {
+          tool_calls?: Array<{ function?: { arguments?: string } }>;
+        };
+      }>;
+    };
+    const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    let raw: unknown = null;
+    try {
+      raw = args ? JSON.parse(args) : null;
+    } catch {
+      raw = null;
+    }
+
     const parsed = dishSchema.safeParse(raw);
     if (!parsed.success || parsed.data.dishes.length === 0) {
       throw new Error(
