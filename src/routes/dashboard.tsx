@@ -7,6 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
 import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
+import { useMe } from "@/lib/use-me";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -34,6 +35,7 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 
 function Dashboard() {
   const mounted = useMounted();
+  const { data: me } = useMe();
   const orders = useStore((s) => s.orders);
   const archived = useStore((s) => s.archived);
   const recallOrder = useStore((s) => s.recallOrder);
@@ -120,7 +122,7 @@ function Dashboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Pilotage</p>
-            <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">Bonsoir, Marco.</h1>
+            <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">Bonsoir{me?.username ? `, ${me.username}` : ""}.</h1>
             <p className="mt-2 text-[15px] text-muted-foreground">Voici votre service en un coup d'œil.</p>
           </div>
           <div className="flex gap-2">
