@@ -23,19 +23,32 @@ export function ImportMenuModal({ onClose, initialUrl, autoStart }: { onClose: (
   const existingByKey = new Map(dishes.map((d) => [dupKey(d.name, d.price), d.id]));
   const findDup = (d: ScrapedDish) => existingByKey.get(dupKey(d.name, d.price));
 
-  async function handleScrape(e: React.FormEvent) {
-    e.preventDefault();
+  async function runScrape(targetUrl: string) {
     setLoading(true);
     try {
-      const r = await scrape({ data: { url: url.trim() } });
+      const r = await scrape({ data: { url: targetUrl } });
       setResult(r);
       setSelected(new Set(r.dishes.map((_, i) => i)));
+      setLastImportUrl(targetUrl);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
   }
+
+  async function handleScrape(e: React.FormEvent) {
+    e.preventDefault();
+    await runScrape(url.trim());
+  }
+
+  // Auto-start when re-syncing from admin panel
+  useEffect(() => {
+    if (autoStart && initialUrl && !result && !loading) {
+      void runScrape(initialUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function toggle(i: number) {
     const s = new Set(selected);
