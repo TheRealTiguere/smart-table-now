@@ -11,6 +11,7 @@ export type Order = {
   items: OrderItem[];
   status: OrderStatus;
   createdAt: number;
+  servedAt?: number;
   total: number;
   paid?: boolean;
   paidAt?: number;
@@ -68,8 +69,11 @@ export const useStore = create<State>()(
           const order = st.orders.find((o) => o.id === id);
           if (!order) return {};
           const nextStatus = NEXT[order.status];
-          const updated = { ...order, status: nextStatus };
-          // When the order reaches "served", archive it (keep in orders too until paid? No, remove)
+          const updated: Order = {
+            ...order,
+            status: nextStatus,
+            servedAt: nextStatus === "served" ? (order.servedAt ?? Date.now()) : order.servedAt,
+          };
           if (nextStatus === "served") {
             return {
               orders: st.orders.filter((o) => o.id !== id),
@@ -120,6 +124,7 @@ export const useStore = create<State>()(
             ...order,
             id: newId,
             status: "served",
+            servedAt: Date.now(),
             items: doneItems.map((it) => ({ ...it, done: false })),
             total: servedTotal,
           };
@@ -139,6 +144,7 @@ export const useStore = create<State>()(
             ...o,
             paid: true,
             paidAt: o.paidAt ?? Date.now(),
+            servedAt: o.servedAt ?? Date.now(),
             paymentMethod: payment?.method ?? o.paymentMethod ?? "card",
             receiptNumber: payment?.receiptNumber ?? o.receiptNumber,
             status: "served",

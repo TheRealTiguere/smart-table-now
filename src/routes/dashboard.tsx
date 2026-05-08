@@ -51,19 +51,27 @@ function Dashboard() {
   const [newTable, setNewTable] = useState("");
 
   const stats = useMemo(() => {
-    const today = orders.filter((o) => o.status !== "served" || o.paid);
-    const revenue = orders.reduce((s, o) => s + o.total, 0);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const dayStart = startOfDay.getTime();
+    const todayActive = orders.filter((o) => o.createdAt >= dayStart);
+    const todayArchived = archived.filter((o) => o.createdAt >= dayStart);
+    const allToday = [...todayActive, ...todayArchived];
+    const revenue = todayArchived.reduce((s, o) => s + o.total, 0);
     const activeTables = TABLE_IDS.filter((t) => tableStatus(orders, t) !== "free").length;
-    const avgMin = orders.length
-      ? Math.round(orders.reduce((s, o) => s + (Date.now() - o.createdAt) / 60_000, 0) / orders.length)
+    const durations = todayArchived
+      .map((o) => (o.servedAt ? o.servedAt - o.createdAt : null))
+      .filter((d): d is number => d !== null && d > 0);
+    const avgMin = durations.length
+      ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length / 60_000)
       : 0;
     return [
-      { label: "Chiffre d'affaires", value: `${revenue}€`, delta: "+18%", up: true },
-      { label: "Commandes", value: String(today.length), delta: `+${today.length}`, up: true },
-      { label: "Tables actives", value: `${activeTables}/${TABLE_IDS.length}`, delta: "live", up: true },
-      { label: "Temps moyen", value: `${avgMin} min`, delta: "−4 min", up: false },
+      { label: "Chiffre d'affaires", value: `${revenue}€`, sub: "encaissé aujourd'hui" },
+      { label: "Commandes du jour", value: String(allToday.length), sub: `${todayArchived.length} servies` },
+      { label: "Tables actives", value: `${activeTables}/${TABLE_IDS.length}`, sub: "en direct" },
+      { label: "Temps moyen", value: `${avgMin} min`, sub: "démarrage → servie" },
     ];
-  }, [orders]);
+  }, [orders, archived, TABLE_IDS]);
 
   const top = useMemo(() => {
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
@@ -147,10 +155,7 @@ function Dashboard() {
             <div key={s.label} className="rounded-3xl bg-surface p-6">
               <p className="text-[13px] text-muted-foreground">{s.label}</p>
               <p className="mt-3 font-display text-4xl font-semibold tracking-tight tabular-nums">{s.value}</p>
-              <div className={`mt-2 inline-flex items-center gap-1 text-[12px] font-medium ${s.up ? "text-primary" : "text-muted-foreground"}`}>
-                {s.up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                {s.delta}
-              </div>
+              <p className="mt-2 text-[12px] text-muted-foreground">{s.sub}</p>
             </div>
           ))}
         </div>
