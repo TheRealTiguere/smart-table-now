@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { scrapeMenu, type ScrapeResult, type ScrapedDish } from "@/lib/menu-import.functions";
 import { useConfig } from "@/lib/config-store";
