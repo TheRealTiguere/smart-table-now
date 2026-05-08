@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
 import { Clock } from "lucide-react";
@@ -8,9 +8,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMounted } from "@/lib/use-mounted";
 import { useOrders, elapsedMinutesLabel } from "@/lib/use-orders";
 import { advanceOrderFn, recallOrderFn, toggleItemDoneFn, validatePartialFn, type OrderStatus } from "@/lib/orders.functions";
+import { meFn } from "@/lib/auth.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/cuisine")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard>
       <KitchenView />

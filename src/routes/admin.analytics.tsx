@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect  } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
+import { meFn } from "@/lib/auth.functions";
 import { AdminNav } from "@/components/AdminNav";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -11,6 +12,10 @@ import { ArrowUpRight, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/analytics")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard>
       <AnalyticsPage />

@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link  } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
+import { meFn } from "@/lib/auth.functions";
 import { AdminNav } from "@/components/AdminNav";
 import { useState, useRef, useMemo, type ChangeEvent } from "react";
 import { useMe } from "@/lib/use-me";
@@ -19,6 +20,10 @@ import { toast } from "sonner";
 import { ImportMenuModal } from "@/components/ImportMenuModal";
 
 export const Route = createFileRoute("/admin/menu")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard>
       <MenuAdmin />

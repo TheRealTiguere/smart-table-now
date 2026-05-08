@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
 import { QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil, Clock, RefreshCw } from "lucide-react";
@@ -10,10 +10,15 @@ import { recallOrderFn, markPaidFn } from "@/lib/orders.functions";
 import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { useMe } from "@/lib/use-me";
+import { meFn } from "@/lib/auth.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard>
       <Dashboard />

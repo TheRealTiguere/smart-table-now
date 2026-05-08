@@ -1,15 +1,19 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminGuard } from "@/components/AdminGuard";
 import { listTenantsFn, createTenantFn, toggleTenantFn, deleteTenantFn } from "@/lib/tenants.functions";
-import { logoutFn } from "@/lib/auth.functions";
+import { logoutFn, meFn } from "@/lib/auth.functions";
 import { Plus, Trash2, Power, LogOut, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/super-admin")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard requireRole="super_admin">
       <SuperAdminPage />

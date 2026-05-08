@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect  } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
+import { meFn } from "@/lib/auth.functions";
 import { AdminNav } from "@/components/AdminNav";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +10,10 @@ import { toast } from "sonner";
 import { Save } from "lucide-react";
 
 export const Route = createFileRoute("/admin/settings")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard>
       <SettingsPage />

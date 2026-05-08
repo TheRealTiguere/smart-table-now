@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect  } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
+import { meFn } from "@/lib/auth.functions";
 import { AdminNav } from "@/components/AdminNav";
 import { useOrders, timeAgo } from "@/lib/use-orders";
 import { useMounted } from "@/lib/use-mounted";
@@ -13,6 +14,10 @@ import { toast } from "sonner";
 import { Download, Mail, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
+  beforeLoad: async () => {
+    const me = await meFn();
+    if (!me) throw redirect({ to: "/admin/login" });
+  },
   component: () => (
     <AdminGuard>
       <OrdersHistory />
