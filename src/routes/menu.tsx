@@ -118,10 +118,12 @@ function ClientMenu() {
   const total = useMemo(() => cart.reduce((s, l) => s + linePrice(l) * l.qty, 0), [cart, dishes, formulas]);
   const count = cart.reduce((a, b) => a + b.qty, 0);
 
-  const send = () => {
+  const send = async () => {
     if (count === 0) return;
+    if (!tenantSlug) return toast.error("Restaurant introuvable");
     const items = cart.map((l) => ({
-      id: `${l.kind}-${l.id}`,
+      kind: l.kind,
+      refId: l.id,
       name: l.kind === "formula" ? `Formule · ${lineName(l)}` : lineName(l),
       price: linePrice(l),
       qty: l.qty,
@@ -130,14 +132,19 @@ function ClientMenu() {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return toast.error("Email invalide");
     }
-    const orderId = addOrder({ table, items, customerEmail: email || undefined });
-    setCart([]);
-    setOpen(false);
-    setSent(true);
-    toast.success(`Commande #${orderId} envoyée en cuisine`, {
-      description: `Table ${table.replace("T", "")} · ${total}€`,
-    });
-    setTimeout(() => setSent(false), 2500);
+    try {
+      await createOrder({ data: { tenantSlug, table, customerEmail: email || null, items } });
+      setCart([]);
+      setOpen(false);
+      setSent(true);
+      ordersQ.refetch();
+      toast.success("Commande envoyée en cuisine", {
+        description: `Table ${table.replace("T", "")} · ${total}€`,
+      });
+      setTimeout(() => setSent(false), 2500);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   if (!mounted || !cfgReady) {
