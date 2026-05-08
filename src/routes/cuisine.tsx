@@ -40,9 +40,15 @@ function KitchenView() {
   const [, force] = useState(0);
 
   useEffect(() => {
-    const i = setInterval(() => force((n) => n + 1), 20_000);
+    const i = setInterval(() => force((n) => n + 1), 30_000);
     return () => clearInterval(i);
   }, []);
+
+  const elapsed = (ts: number) => {
+    const m = Math.floor((Date.now() - ts) / 60_000);
+    const h = Math.floor(m / 60);
+    return h > 0 ? `${h}h${String(m % 60).padStart(2, "0")}` : `${m} min`;
+  };
 
   if (!mounted) {
     return (
@@ -111,8 +117,8 @@ function KitchenView() {
                             <p className="font-display text-2xl font-semibold tracking-tight">{o.table}</p>
                             <p className="text-[11px] text-muted-foreground">#{o.id}</p>
                           </div>
-                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <Clock className="h-3 w-3" /> {timeAgo(o.createdAt)}
+                          <span className="flex items-center gap-1 text-[11px] font-medium tabular-nums text-muted-foreground">
+                            <Clock className="h-3 w-3" /> {elapsed(o.createdAt)}
                           </span>
                         </header>
                         <ul className="mt-4 space-y-1.5">
