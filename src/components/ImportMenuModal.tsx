@@ -240,7 +240,14 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
                               className="mt-1"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="truncate text-[14px] font-medium">{dish.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-[14px] font-medium">{dish.name}</p>
+                                {findDup(dish) && (
+                                  <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                    Doublon · {dupStrategy === "ignore" ? "ignoré" : "remplacé"}
+                                  </span>
+                                )}
+                              </div>
                               {dish.description && (
                                 <p className="line-clamp-2 text-[12px] text-muted-foreground">{dish.description}</p>
                               )}
