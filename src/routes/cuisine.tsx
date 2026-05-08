@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
 import { Clock } from "lucide-react";
-import { useStore, timeAgo, type OrderStatus } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
-import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useMounted } from "@/lib/use-mounted";
+import { useOrders, elapsedMinutesLabel } from "@/lib/use-orders";
+import { advanceOrderFn, recallOrderFn, toggleItemDoneFn, validatePartialFn, type OrderStatus } from "@/lib/orders.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/cuisine")({
   component: () => (
@@ -31,24 +33,18 @@ const ACTION: Record<OrderStatus, string> = {
 
 function KitchenView() {
   const mounted = useMounted();
-  const allOrders = useStore((s) => s.orders);
-  const advance = useStore((s) => s.advanceOrder);
-  const recall = useStore((s) => s.recallOrder);
-  const toggleItem = useStore((s) => s.toggleItemDone);
-  const validatePartial = useStore((s) => s.validatePartial);
+  const { data: allOrders } = useOrders();
+  const advance = useServerFn(advanceOrderFn);
+  const recall = useServerFn(recallOrderFn);
+  const toggle = useServerFn(toggleItemDoneFn);
+  const validate = useServerFn(validatePartialFn);
   const orders = allOrders.filter((o) => o.status !== "served");
   const [, force] = useState(0);
 
   useEffect(() => {
-    const i = setInterval(() => force((n) => n + 1), 30_000);
+    const i = setInterval(() => force((n) => n + 1), 60_000);
     return () => clearInterval(i);
   }, []);
-
-  const elapsed = (ts: number) => {
-    const m = Math.floor((Date.now() - ts) / 60_000);
-    const h = Math.floor(m / 60);
-    return h > 0 ? `${h}h${String(m % 60).padStart(2, "0")}` : `${m} min`;
-  };
 
   if (!mounted) {
     return (
@@ -58,26 +54,26 @@ function KitchenView() {
     );
   }
 
-  const handle = (id: string, status: OrderStatus, table: string) => {
-    advance(id);
+  const handle = async (id: string, status: OrderStatus, table: string) => {
+    await advance({ data: { id } });
     const next = status === "new" ? "préparation" : status === "cooking" ? "prête" : "servie";
-    toast.success(`Commande #${id} · ${table}`, { description: `Statut : ${next}` });
+    toast.success(`Table ${table}`, { description: `Statut : ${next}` });
   };
 
-  const handlePartial = (id: string, table: string) => {
-    validatePartial(id);
-    toast.success(`Commande #${id} · ${table}`, { description: "Plats prêts envoyés en salle" });
+  const handlePartial = async (id: string, table: string) => {
+    await validate({ data: { id } });
+    toast.success(`Table ${table}`, { description: "Plats prêts envoyés en salle" });
   };
 
-  const handleBack = (id: string, status: OrderStatus, table: string) => {
-    recall(id);
+  const handleBack = async (id: string, status: OrderStatus, table: string) => {
+    await recall({ data: { id } });
     const prev = status === "ready" ? "préparation" : status === "cooking" ? "à démarrer" : status;
-    toast(`Commande #${id} · ${table}`, { description: `Retour : ${prev}` });
+    toast(`Table ${table}`, { description: `Retour : ${prev}` });
   };
+
   return (
     <div className="min-h-screen bg-surface">
       <AdminNav />
-
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -115,25 +111,24 @@ function KitchenView() {
                         <header className="flex items-baseline justify-between">
                           <div>
                             <p className="font-display text-2xl font-semibold tracking-tight">{o.table}</p>
-                            <p className="text-[11px] text-muted-foreground">#{o.id}</p>
                           </div>
                           <span className="flex items-center gap-1 text-[11px] font-medium tabular-nums text-muted-foreground">
-                            <Clock className="h-3 w-3" /> {elapsed(o.createdAt)}
+                            <Clock className="h-3 w-3" /> {elapsedMinutesLabel(o.createdAt)}
                           </span>
                         </header>
                         <ul className="mt-4 space-y-1.5">
-                          {o.items.map((it, i) => (
-                            <li key={i}>
+                          {o.items.map((it) => (
+                            <li key={it.id}>
                               <button
                                 type="button"
-                                onClick={() => toggleItem(o.id, i)}
+                                onClick={() => toggle({ data: { itemId: it.id } })}
                                 className={`w-full text-left text-[14px] leading-relaxed transition-colors ${
                                   it.done ? "text-muted-foreground line-through" : ""
                                 }`}
                               >
                                 <span className="font-medium tabular-nums text-muted-foreground">{it.qty}×</span>{" "}
                                 <span>{it.name}</span>
-                                {it.note && <div className="mt-0.5 text-[12px] italic text-primary not-italic-when-done">{it.note}</div>}
+                                {it.note && <div className="mt-0.5 text-[12px] italic text-primary">{it.note}</div>}
                               </button>
                             </li>
                           ))}
