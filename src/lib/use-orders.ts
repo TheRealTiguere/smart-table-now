@@ -13,8 +13,18 @@ export function useOrders(): { data: OrderDTO[]; isLoading: boolean } {
 
   const q = useQuery({
     queryKey: ["orders", tenantId],
-    queryFn: () => fn(),
+    queryFn: async () => {
+      try {
+        return await fn();
+      } catch (e) {
+        // Session expirée / déconnecté pendant la transition : on renvoie vide
+        // au lieu de faire planter la route avec un errorComponent.
+        if ((e as Error)?.message === "Non authentifié") return [] as OrderDTO[];
+        throw e;
+      }
+    },
     enabled: !!tenantId,
+    retry: false,
     refetchInterval: 30_000,
   });
 
