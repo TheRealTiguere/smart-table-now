@@ -281,7 +281,6 @@ function AnalyticsPage() {
                 onClick={() => {
                   if (confirm("Effacer tout l'historique archivé ?")) {
                     clearHistory();
-                    toast.success("Historique effacé");
                   }
                 }}
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-secondary hover:text-foreground"
