@@ -151,6 +151,7 @@ export const useConfig = create<ConfigState>()(
       dishes: seedDishes,
       formulas: seedFormulas,
       tables: ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"],
+      tableNonces: {},
 
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
@@ -158,15 +159,31 @@ export const useConfig = create<ConfigState>()(
       setLastImportUrl: (url) => set({ lastImportUrl: url }),
 
       addTable: (name) =>
-        set((s) => (s.tables.includes(name) ? {} : { tables: [...s.tables, name] })),
-      removeTable: (name) =>
-        set((s) => ({ tables: s.tables.filter((t) => t !== name) })),
-      renameTable: (oldName, newName) =>
         set((s) =>
-          s.tables.includes(newName)
+          s.tables.includes(name)
             ? {}
-            : { tables: s.tables.map((t) => (t === oldName ? newName : t)) },
+            : { tables: [...s.tables, name], tableNonces: { ...s.tableNonces, [name]: uid() } },
         ),
+      removeTable: (name) =>
+        set((s) => {
+          const { [name]: _removed, ...rest } = s.tableNonces;
+          return { tables: s.tables.filter((t) => t !== name), tableNonces: rest };
+        }),
+      renameTable: (oldName, newName) =>
+        set((s) => {
+          if (s.tables.includes(newName)) return {};
+          const { [oldName]: oldNonce, ...rest } = s.tableNonces;
+          return {
+            tables: s.tables.map((t) => (t === oldName ? newName : t)),
+            tableNonces: { ...rest, [newName]: oldNonce ?? uid() },
+          };
+        }),
+      regenerateTableNonce: (name) =>
+        set((s) => ({ tableNonces: { ...s.tableNonces, [name]: uid() } })),
+      regenerateAllTableNonces: () =>
+        set((s) => ({
+          tableNonces: Object.fromEntries(s.tables.map((t) => [t, uid()])),
+        })),
 
       addCategory: (name) =>
         set((s) => ({
