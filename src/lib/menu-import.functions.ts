@@ -193,9 +193,7 @@ export const scrapeMenu = createServerFn({ method: "POST" })
     return {
       source,
       restaurantName:
-        parsed.data.restaurantName?.trim() ||
-        payload.data?.metadata?.title ||
-        "Import",
+        parsed.data.restaurantName?.trim() || pageTitle || "Import",
       dishes,
     };
   });
