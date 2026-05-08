@@ -25,7 +25,7 @@ const dishSchema = z.object({
         name: z.string(),
         description: z.string().optional().default(""),
         price: z.number(),
-        photo: z.string().url().optional(),
+        photo: z.string().optional().nullable().or(z.literal('')),
         category: z.string().default("Import"),
       }),
     )
@@ -112,73 +112,43 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       );
     }
 
-    // Step 2: extract dishes from markdown via Lovable AI (Gemini 2.5 Pro — large context)
-    const aiKey = process.env.LOVABLE_API_KEY;
-    if (!aiKey) throw new Error("LOVABLE_API_KEY manquante.");
+    // Step 2: extract dishes from markdown via Gemini API directly
+    const aiKey = process.env.GEMINI_API_KEY;
+    if (!aiKey) throw new Error("GEMINI_API_KEY manquante.");
 
     // Truncate very large pages to fit context safely
     const content = markdown.slice(0, 200_000);
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${aiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gemini-2.5-flash",
+        max_tokens: 8192,
         messages: [
           {
             role: "system",
             content:
-              "You extract restaurant menus from markdown. Return STRICT JSON matching the provided tool schema. Include EVERY dish present, do not skip any. Prices are in EUROS as numbers (e.g. 12.5), never strings, never cents. Group by category (the menu section header). If a dish has no description, use empty string. IMAGES: markdown contains images as ![alt](url). For each dish, set `photo` to the absolute URL of the image visually attached to it (typically the image immediately preceding or following the dish name in the markdown). Prefer Uber Eats CDN URLs (containing tb-static.uber.com, cn-geo1.uber.com, d1ralsognjng37.cloudfront.net, or similar). Skip logos, banners, icons, profile photos and any image whose URL contains `logo`, `banner`, `icon`, `avatar`, or is smaller than a typical dish thumbnail. If no dish image is clearly attached, leave `photo` empty (do not invent URLs).",
+              "You extract restaurant menus from markdown. Return STRICT JSON. Include EVERY dish present, do not skip any. Prices are in EUROS as numbers (e.g. 12.5). Group by category. If a dish has no description, use empty string. Set `photo` to the absolute URL of the dish image (prefer Uber Eats CDN URLs like tb-static.uber.com). Skip logos. If no image, leave empty.\n\nYOU MUST RETURN ONLY A JSON OBJECT matching exactly this TypeScript interface:\n{\n  restaurantName: string;\n  dishes: Array<{\n    name: string;\n    description: string;\n    price: number;\n    photo: string;\n    category: string;\n  }>\n}",
           },
           {
             role: "user",
             content: `Extract ALL dishes (with their photo URLs) from this restaurant menu page.\n\nPage title: ${pageTitle ?? ""}\n\nMARKDOWN:\n${content}`,
           },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "return_menu",
-              description: "Return the complete extracted menu",
-              parameters: {
-                type: "object",
-                properties: {
-                  restaurantName: { type: "string" },
-                  dishes: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        description: { type: "string" },
-                        price: { type: "number" },
-                        photo: { type: "string" },
-                        category: { type: "string" },
-                      },
-                      required: ["name", "price", "category"],
-                    },
-                  },
-                },
-                required: ["restaurantName", "dishes"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "return_menu" } },
       }),
     });
 
     if (!aiRes.ok) {
       const t = await aiRes.text().catch(() => "");
       if (aiRes.status === 402)
-        throw new Error("Crédits Lovable AI insuffisants.");
+        throw new Error("Clé API Gemini invalide ou quota dépassé.");
       if (aiRes.status === 429)
-        throw new Error("Trop de requêtes Lovable AI, réessaie dans un instant.");
-      throw new Error(`Lovable AI a échoué (${aiRes.status}): ${t.slice(0, 200)}`);
+        throw new Error("Trop de requêtes Gemini, réessaie dans un instant.");
+      throw new Error(`Gemini AI a échoué (${aiRes.status}): ${t.slice(0, 200)}`);
     }
 
     const aiJson = (await aiRes.json()) as {
