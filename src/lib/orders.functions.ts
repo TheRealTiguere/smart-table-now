@@ -189,7 +189,7 @@ export const advanceOrderFn = createServerFn({ method: "POST" })
     const next = NEXT[order.status as OrderStatus];
     const patch: Record<string, unknown> = { status: next };
     if (next === "served" && !order.served_at) patch.served_at = new Date().toISOString();
-    const { error: uErr } = await supabaseAdmin.from("orders").update(patch).eq("id", data.id);
+    const { error: uErr } = await supabaseAdmin.from("orders").update(patch as any).eq("id", data.id);
     if (uErr) throw new Error(uErr.message);
     return { ok: true };
   });
@@ -210,7 +210,7 @@ export const recallOrderFn = createServerFn({ method: "POST" })
       order.status === "served" ? "ready" : order.status === "ready" ? "cooking" : order.status === "cooking" ? "new" : (order.status as OrderStatus);
     const patch: Record<string, unknown> = { status: prev };
     if (order.status === "served") patch.served_at = null;
-    const { error: uErr } = await supabaseAdmin.from("orders").update(patch).eq("id", data.id);
+    const { error: uErr } = await supabaseAdmin.from("orders").update(patch as any).eq("id", data.id);
     if (uErr) throw new Error(uErr.message);
     await supabaseAdmin.from("order_items").update({ done: false }).eq("order_id", data.id);
     return { ok: true };
@@ -309,7 +309,7 @@ export const markPaidFn = createServerFn({ method: "POST" })
       payment_method: data.method ?? "card",
     };
     if (data.receiptNumber) patch.receipt_number = data.receiptNumber;
-    const { error: uErr } = await supabaseAdmin.from("orders").update(patch).eq("id", data.id);
+    const { error: uErr } = await supabaseAdmin.from("orders").update(patch as any).eq("id", data.id);
     if (uErr) throw new Error(uErr.message);
     return { ok: true };
   });
