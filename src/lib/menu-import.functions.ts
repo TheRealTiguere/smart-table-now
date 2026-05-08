@@ -58,24 +58,17 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       body: JSON.stringify({
         url,
         onlyMainContent: false,
-        waitFor: 5000,
-        maxAge: 0,
+        waitFor: 2000,
+        maxAge: 3600000,
         blockAds: true,
         mobile: false,
         location: { country: "FR", languages: ["fr-FR", "fr"] },
         formats: ["markdown"],
         actions: [
-          { type: "wait", milliseconds: 4000 },
+          { type: "scroll", direction: "down" },
+          { type: "scroll", direction: "down" },
           { type: "scroll", direction: "down" },
           { type: "wait", milliseconds: 1500 },
-          { type: "scroll", direction: "down" },
-          { type: "wait", milliseconds: 1500 },
-          { type: "scroll", direction: "down" },
-          { type: "wait", milliseconds: 1500 },
-          { type: "scroll", direction: "down" },
-          { type: "wait", milliseconds: 1500 },
-          { type: "scroll", direction: "down" },
-          { type: "wait", milliseconds: 2000 },
         ],
       }),
     });
@@ -133,7 +126,7 @@ export const scrapeMenu = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
