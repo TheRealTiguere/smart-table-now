@@ -58,22 +58,37 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
       .sort((a, b) => a - b)
       .map((i) => result.dishes[i]);
 
-    // Ensure categories exist (case-insensitive match)
     const catMap = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]));
     const neededCats = [...new Set(picked.map((d) => d.category))];
     for (const name of neededCats) {
-      if (!catMap.has(name.toLowerCase())) {
-        addCategory(name);
-      }
+      if (!catMap.has(name.toLowerCase())) addCategory(name);
     }
-    // After adds, re-read config for new IDs
     const fresh = useConfig.getState().categories;
     const freshMap = new Map(fresh.map((c) => [c.name.toLowerCase(), c.id]));
 
-    let ok = 0;
+    let created = 0;
+    let replaced = 0;
+    let ignored = 0;
     for (const d of picked) {
       const catId = freshMap.get(d.category.toLowerCase());
       if (!catId) continue;
+      const dupId = findDup(d);
+      if (dupId) {
+        if (dupStrategy === "ignore") {
+          ignored++;
+          continue;
+        }
+        // replace: update existing dish in place
+        updateDish(dupId, {
+          name: d.name,
+          desc: d.description ?? "",
+          price: Number.isFinite(d.price) ? d.price : 0,
+          categoryId: catId,
+          photo: d.photo,
+        });
+        replaced++;
+        continue;
+      }
       addDish({
         name: d.name,
         desc: d.description ?? "",
@@ -85,9 +100,14 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
         customAllergens: [],
         available: true,
       });
-      ok++;
+      created++;
     }
-    toast.success(`${ok} plat${ok > 1 ? "s" : ""} importé${ok > 1 ? "s" : ""}.`);
+    const parts = [
+      created > 0 && `${created} créé${created > 1 ? "s" : ""}`,
+      replaced > 0 && `${replaced} remplacé${replaced > 1 ? "s" : ""}`,
+      ignored > 0 && `${ignored} ignoré${ignored > 1 ? "s" : ""}`,
+    ].filter(Boolean);
+    toast.success(`Import terminé · ${parts.join(" · ") || "rien à faire"}.`);
     onClose();
   }
 
