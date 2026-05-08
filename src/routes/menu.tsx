@@ -21,20 +21,28 @@ function ClientMenu() {
   const mounted = useMounted();
   const cfgReady = useConfigHydrated();
   const search = Route.useSearch();
-
-  const currentTable = useStore((s) => s.currentTable);
-  const setCurrentTable = useStore((s) => s.setCurrentTable);
-  const addOrder = useStore((s) => s.addOrder);
-  const allOrders = useStore((s) => s.orders);
+  const resolveTenant = useServerFn(resolveTenantFn);
+  const createOrder = useServerFn(createOrderFn);
+  const listForTable = useServerFn(listOrdersForTableFn);
 
   const { restaurantName, logo, categories, dishes, formulas, timezone } = useConfig();
+  const table = search.table || "T1";
 
-  const table = search.table || currentTable;
-  const myOrders = allOrders.filter((o) => o.table === table && o.status !== "served");
+  const tenantQ = useQuery({
+    queryKey: ["resolve-tenant"],
+    queryFn: () => resolveTenant({ data: {} }),
+    staleTime: 5 * 60_000,
+  });
+  const tenantSlug = tenantQ.data?.slug ?? null;
 
-  useEffect(() => {
-    if (search.table && search.table !== currentTable) setCurrentTable(search.table);
-  }, [search.table, currentTable, setCurrentTable]);
+  const ordersQ = useQuery({
+    queryKey: ["table-orders", tenantSlug, table],
+    queryFn: () => listForTable({ data: { tenantSlug: tenantSlug!, table } }),
+    enabled: !!tenantSlug,
+    refetchInterval: 15_000,
+  });
+  const myOrders = ordersQ.data ?? [];
+
 
   // Tick every minute so schedule-restricted formulas appear/disappear in real time
   const [, setNowTick] = useState(0);
