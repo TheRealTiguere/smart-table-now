@@ -79,6 +79,7 @@ type ConfigState = {
   logo?: string; // dataURL
   timezone: string; // IANA tz, e.g. "Europe/Paris"
   tables: string[];
+  tableNonces: Record<string, string>;
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
@@ -92,6 +93,8 @@ type ConfigState = {
   addTable: (name: string) => void;
   removeTable: (name: string) => void;
   renameTable: (oldName: string, newName: string) => void;
+  regenerateTableNonce: (name: string) => void;
+  regenerateAllTableNonces: () => void;
 
   addCategory: (name: string) => void;
   renameCategory: (id: string, name: string) => void;
