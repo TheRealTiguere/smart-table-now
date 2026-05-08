@@ -132,14 +132,32 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
             </p>
           )}
 
-          {result && (
+          {result && (() => {
+            const existingCats = new Set(categories.map((c) => c.name.toLowerCase()));
+            const selectedDishes = [...selected].map((i) => result.dishes[i]);
+            const selectedCatNames = new Set(selectedDishes.map((d) => d.category.toLowerCase()));
+            const newCatsCount = [...selectedCatNames].filter((n) => !existingCats.has(n)).length;
+            const reusedCatsCount = selectedCatNames.size - newCatsCount;
+            return (
             <>
-              <div className="mt-5 flex items-center justify-between rounded-xl bg-surface px-4 py-3">
-                <div>
-                  <p className="text-[13px] font-medium">{result.restaurantName}</p>
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    {result.source} · {result.dishes.length} plats trouvés · {selected.size} sélectionnés
-                  </p>
+              <div className="mt-5 rounded-xl bg-surface px-4 py-3">
+                <p className="text-[13px] font-medium">{result.restaurantName}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {result.source} · {result.dishes.length} plats trouvés
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-card px-3 py-2">
+                    <p className="text-[18px] font-semibold tabular-nums">{selectedDishes.length}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Plats à créer</p>
+                  </div>
+                  <div className="rounded-lg bg-card px-3 py-2">
+                    <p className="text-[18px] font-semibold tabular-nums text-primary">+{newCatsCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouvelles catégories</p>
+                  </div>
+                  <div className="rounded-lg bg-card px-3 py-2">
+                    <p className="text-[18px] font-semibold tabular-nums">{reusedCatsCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Catégories existantes</p>
+                  </div>
                 </div>
               </div>
 
@@ -181,7 +199,8 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
                 })}
               </div>
             </>
-          )}
+            );
+          })()}
         </div>
 
         {result && (
