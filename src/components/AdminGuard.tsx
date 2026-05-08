@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { useMe } from "@/lib/use-me";
 import type { Role } from "@/lib/auth.functions";
+import { setActiveTenantLocal } from "@/lib/config-store";
 
 export function AdminGuard({
   children,
@@ -13,6 +14,10 @@ export function AdminGuard({
   const { data: me, isLoading } = useMe();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (me?.tenantId) setActiveTenantLocal(me.tenantId);
+  }, [me?.tenantId]);
 
   useEffect(() => {
     if (isLoading) return;

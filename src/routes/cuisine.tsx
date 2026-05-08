@@ -3,6 +3,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
 import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMounted } from "@/lib/use-mounted";
 import { useOrders, elapsedMinutesLabel } from "@/lib/use-orders";
@@ -38,6 +39,7 @@ function KitchenView() {
   const recall = useServerFn(recallOrderFn);
   const toggle = useServerFn(toggleItemDoneFn);
   const validate = useServerFn(validatePartialFn);
+  const qc = useQueryClient();
   const orders = allOrders.filter((o) => o.status !== "served");
   const [, force] = useState(0);
 
@@ -56,20 +58,24 @@ function KitchenView() {
 
   const handle = async (id: string, status: OrderStatus, table: string) => {
     await advance({ data: { id } });
+    await qc.invalidateQueries({ queryKey: ["orders"] });
     const next = status === "new" ? "préparation" : status === "cooking" ? "prête" : "servie";
     toast.success(`Table ${table}`, { description: `Statut : ${next}` });
   };
 
   const handlePartial = async (id: string, table: string) => {
     await validate({ data: { id } });
+    await qc.invalidateQueries({ queryKey: ["orders"] });
     toast.success(`Table ${table}`, { description: "Plats prêts envoyés en salle" });
   };
 
   const handleBack = async (id: string, status: OrderStatus, table: string) => {
     await recall({ data: { id } });
+    await qc.invalidateQueries({ queryKey: ["orders"] });
     const prev = status === "ready" ? "préparation" : status === "cooking" ? "à démarrer" : status;
     toast(`Table ${table}`, { description: `Retour : ${prev}` });
   };
+
 
   return (
     <div className="min-h-screen bg-surface">
@@ -111,6 +117,7 @@ function KitchenView() {
                         <header className="flex items-baseline justify-between">
                           <div>
                             <p className="font-display text-2xl font-semibold tracking-tight">{o.table}</p>
+                            <p className="text-[13px] font-medium text-muted-foreground mt-0.5">Commande #{o.receiptNumber ?? o.id.split('-')[0]}</p>
                           </div>
                           <span className="flex items-center gap-1 text-[11px] font-medium tabular-nums text-muted-foreground">
                             <Clock className="h-3 w-3" /> {elapsedMinutesLabel(o.createdAt)}

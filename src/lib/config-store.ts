@@ -141,6 +141,17 @@ const seedFormulas: Formula[] = [
   },
 ];
 
+export const activeTenantKey = "tabli-active-tenant";
+
+export function setActiveTenantLocal(tenantId: string) {
+  if (typeof window === "undefined") return;
+  const current = localStorage.getItem(activeTenantKey);
+  if (current !== tenantId) {
+    localStorage.setItem(activeTenantKey, tenantId);
+    useConfig.persist.rehydrate();
+  }
+}
+
 export const useConfig = create<ConfigState>()(
   persist(
     (set) => ({
@@ -231,7 +242,23 @@ export const useConfig = create<ConfigState>()(
     }),
     {
       name: "tabli-config",
-      storage: typeof window !== "undefined" ? createJSONStorage(() => localStorage) : undefined,
+      storage: typeof window !== "undefined" ? createJSONStorage(() => ({
+         getItem: (name) => {
+            const tenant = localStorage.getItem(activeTenantKey);
+            const key = tenant ? `${name}-${tenant}` : name;
+            const val = localStorage.getItem(key);
+            if (!val && tenant) return localStorage.getItem(name); // fallback
+            return val;
+         },
+         setItem: (name, value) => {
+            const tenant = localStorage.getItem(activeTenantKey);
+            localStorage.setItem(tenant ? `${name}-${tenant}` : name, value);
+         },
+         removeItem: (name) => {
+            const tenant = localStorage.getItem(activeTenantKey);
+            localStorage.removeItem(tenant ? `${name}-${tenant}` : name);
+         }
+      })) : undefined,
       skipHydration: true,
     },
   ),

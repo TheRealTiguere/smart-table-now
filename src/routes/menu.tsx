@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { resolveTenantFn } from "@/lib/tenants.functions";
 import { createOrderFn, listOrdersForTableFn } from "@/lib/orders.functions";
-import { useConfig, useConfigHydrated, ALLERGEN_LABELS, isFormulaActiveNow } from "@/lib/config-store";
+import { useConfig, useConfigHydrated, ALLERGEN_LABELS, isFormulaActiveNow, setActiveTenantLocal } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
 
@@ -38,6 +38,11 @@ function ClientMenu() {
     staleTime: 5 * 60_000,
   });
   const tenantSlug = tenantQ.data?.slug ?? null;
+  const tenantId = tenantQ.data?.id;
+
+  useEffect(() => {
+    if (tenantId) setActiveTenantLocal(tenantId);
+  }, [tenantId]);
 
   const ordersQ = useQuery({
     queryKey: ["table-orders", tenantSlug, table],
@@ -160,6 +165,8 @@ function ClientMenu() {
 
   const infoDish = info ? dishes.find((d) => d.id === info) ?? null : null;
 
+  const nameToDisplay = tenantQ.data?.name ?? restaurantName;
+
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Brand bar */}
@@ -171,7 +178,7 @@ function ClientMenu() {
             ) : (
               <div className="h-6 w-6 rounded-[6px] bg-foreground" />
             )}
-            <span className="font-display text-[15px] font-semibold tracking-tight">{restaurantName}</span>
+            <span className="font-display text-[15px] font-semibold tracking-tight">{nameToDisplay}</span>
           </div>
           <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">Table {table.replace("T", "")}</span>
         </div>
@@ -191,7 +198,7 @@ function ClientMenu() {
                 <li key={o.id} className="flex items-center justify-between text-[13px]">
                   <span className="flex items-center gap-2">
                     <span className={`h-1.5 w-1.5 rounded-full ${o.status === "ready" ? "bg-primary" : o.status === "cooking" ? "bg-foreground" : "bg-muted-foreground"}`} />
-                    #{o.id} · {o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}
+                    #{o.receiptNumber ?? o.id.split('-')[0]} · {o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}
                   </span>
                   <span className="font-medium tabular-nums">{o.total}€</span>
                 </li>

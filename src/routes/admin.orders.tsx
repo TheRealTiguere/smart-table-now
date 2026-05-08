@@ -140,7 +140,7 @@ function OrdersHistory() {
               <header className="flex flex-wrap items-baseline justify-between gap-3">
                 <div>
                   <p className="font-display text-xl font-semibold tracking-tight">
-                    {o.table} · #{o.id}
+                    {o.table} · #{o.receiptNumber ?? o.id.split('-')[0]}
                     {o.receiptNumber && (
                       <span className="ml-2 rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                         Note {o.receiptNumber}

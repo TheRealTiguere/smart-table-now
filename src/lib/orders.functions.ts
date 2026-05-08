@@ -145,6 +145,14 @@ export const createOrderFn = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!tenant) throw new Error("Restaurant introuvable");
     const total = data.items.reduce((s, i) => s + i.price * i.qty, 0);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const { count } = await supabaseAdmin
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id)
+      .gte("created_at", todayStr + "T00:00:00Z");
+    const dailyNumber = (count || 0) + 1;
+
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -153,6 +161,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
         status: "new",
         total,
         customer_email: data.customerEmail || null,
+        receipt_number: String(dailyNumber),
       })
       .select()
       .single();
@@ -164,7 +173,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
         price: it.price,
         qty: it.qty,
         kind: it.kind,
-        ref_id: it.refId,
+        ref_id: it.refId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(it.refId) ? it.refId : null,
         note: it.note ?? null,
         sort_order: idx,
       })),
