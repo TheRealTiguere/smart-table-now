@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
-import { useStore } from "@/lib/store";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listAllOrdersForRangeFn, clearArchivedFn } from "@/lib/orders.functions";
 import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { useMemo, useState } from "react";
