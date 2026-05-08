@@ -163,20 +163,33 @@ export const scrapeMenu = createServerFn({ method: "POST" })
     const aiJson = (await aiRes.json()) as {
       choices?: Array<{
         message?: {
+          content?: string;
           tool_calls?: Array<{ function?: { arguments?: string } }>;
         };
       }>;
     };
-    const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const msg = aiJson.choices?.[0]?.message;
+    const args = msg?.tool_calls?.[0]?.function?.arguments;
     let raw: unknown = null;
     try {
-      raw = args ? JSON.parse(args) : null;
-    } catch {
-      raw = null;
+      if (args) {
+        raw = JSON.parse(args);
+      } else if (msg?.content) {
+        // Fallback: try to parse JSON from content (some models ignore tool_choice)
+        const m = msg.content.match(/\{[\s\S]*\}/);
+        if (m) raw = JSON.parse(m[0]);
+      }
+    } catch (e) {
+      console.error("Menu parse error:", e, "args:", args?.slice(0, 500), "content:", msg?.content?.slice(0, 500));
     }
 
     const parsed = dishSchema.safeParse(raw);
     if (!parsed.success || parsed.data.dishes.length === 0) {
+      console.error(
+        "Menu extraction failed. AI response:",
+        JSON.stringify(aiJson).slice(0, 1500),
+        "Markdown length:", markdown.length,
+      );
       throw new Error(
         "Aucun plat n'a pu être extrait depuis cette page. Vérifie l'URL ou essaie une autre page.",
       );
