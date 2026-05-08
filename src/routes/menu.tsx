@@ -12,7 +12,11 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/menu")({
   component: ClientMenu,
   head: () => ({ meta: [{ title: "Menu · Table" }] }),
-  validateSearch: (s: Record<string, unknown>) => ({ table: (s.table as string) || undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    table: (s.table as string) || undefined,
+    r: (s.r as string) || undefined,
+    k: (s.k as string) || undefined,
+  }),
 });
 
 type CartLine = { kind: "dish" | "formula"; id: string; qty: number };
@@ -29,8 +33,8 @@ function ClientMenu() {
   const table = search.table || "T1";
 
   const tenantQ = useQuery({
-    queryKey: ["resolve-tenant"],
-    queryFn: () => resolveTenant({ data: {} }),
+    queryKey: ["resolve-tenant", search.r ?? null],
+    queryFn: () => resolveTenant({ data: search.r ? { slug: search.r } : {} }),
     staleTime: 5 * 60_000,
   });
   const tenantSlug = tenantQ.data?.slug ?? null;

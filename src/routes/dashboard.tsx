@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
-import { QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil, Clock } from "lucide-react";
+import { QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil, Clock, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useServerFn } from "@tanstack/react-start";
@@ -50,9 +50,13 @@ function Dashboard() {
   const archived = useMemo(() => allOrders.filter((o) => o.status === "served"), [allOrders]);
 
   const TABLE_IDS = useConfig((s) => s.tables);
+  const tableNonces = useConfig((s) => s.tableNonces);
   const addTable = useConfig((s) => s.addTable);
   const removeTable = useConfig((s) => s.removeTable);
   const renameTable = useConfig((s) => s.renameTable);
+  const regenerateTableNonce = useConfig((s) => s.regenerateTableNonce);
+  const regenerateAllTableNonces = useConfig((s) => s.regenerateAllTableNonces);
+  const tenantSlug = me?.tenantSlug ?? null;
   const [selected, setSelected] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [editPlan, setEditPlan] = useState(false);
@@ -424,28 +428,52 @@ function Dashboard() {
 
       {qrOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4" onClick={() => setQrOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-3xl bg-card p-6 shadow-pop animate-in fade-in zoom-in-95">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-3xl bg-card p-6 shadow-pop animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-2xl font-semibold tracking-tight">QR codes des tables</h3>
               <button onClick={() => setQrOpen(false)} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
             </div>
-            <p className="mt-1 text-[13px] text-muted-foreground">Le client scanne, le menu de sa table s'ouvre.</p>
-            <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
+            <p className="mt-1 text-[13px] text-muted-foreground">Le client scanne, le menu de sa table s'ouvre. Chaque QR est unique à ce restaurant.</p>
+            <div className="mt-3 flex justify-end print:hidden">
+              <button
+                onClick={() => {
+                  if (!confirm("Régénérer TOUS les QR ? Les anciens ne fonctionneront plus.")) return;
+                  regenerateAllTableNonces();
+                  toast.success("Tous les QR ont été régénérés");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-secondary/70"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Tout régénérer
+              </button>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
               {TABLE_IDS.map((id) => {
-                const url = typeof window !== "undefined" ? `${window.location.origin}/menu?table=${id}` : `/menu?table=${id}`;
+                const nonce = tableNonces[id] ?? "";
+                const origin = typeof window !== "undefined" ? window.location.origin : "";
+                const params = new URLSearchParams({ table: id });
+                if (tenantSlug) params.set("r", tenantSlug);
+                if (nonce) params.set("k", nonce);
+                const url = `${origin}/menu?${params.toString()}`;
                 return (
                   <div key={id} className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-4">
                     <div className="rounded-lg bg-white p-2">
                       <QRCodeSVG value={url} size={80} level="M" />
                     </div>
                     <span className="font-display text-[15px] font-semibold">{id}</span>
+                    <button
+                      onClick={() => { regenerateTableNonce(id); toast.success(`QR de ${id} régénéré`); }}
+                      className="print:hidden inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                      title="Régénérer ce QR"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Régénérer
+                    </button>
                   </div>
                 );
               })}
             </div>
             <button
               onClick={() => { window.print(); toast.success("Impression lancée"); }}
-              className="mt-5 w-full rounded-2xl bg-foreground py-3.5 text-[14px] font-medium text-background transition-opacity hover:opacity-90"
+              className="mt-5 w-full rounded-2xl bg-foreground py-3.5 text-[14px] font-medium text-background transition-opacity hover:opacity-90 print:hidden"
             >
               Imprimer
             </button>
