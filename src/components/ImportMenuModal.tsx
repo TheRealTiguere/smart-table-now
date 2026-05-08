@@ -167,6 +167,8 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
             const selectedCatNames = new Set(selectedDishes.map((d) => d.category.toLowerCase()));
             const newCatsCount = [...selectedCatNames].filter((n) => !existingCats.has(n)).length;
             const reusedCatsCount = selectedCatNames.size - newCatsCount;
+            const dupCount = selectedDishes.filter((d) => findDup(d)).length;
+            const newDishesCount = selectedDishes.length - dupCount;
             return (
             <>
               <div className="mt-5 rounded-xl bg-surface px-4 py-3">
@@ -174,20 +176,46 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
                 <p className="mt-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
                   {result.source} · {result.dishes.length} plats trouvés
                 </p>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                   <div className="rounded-lg bg-card px-3 py-2">
-                    <p className="text-[18px] font-semibold tabular-nums">{selectedDishes.length}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Plats à créer</p>
+                    <p className="text-[18px] font-semibold tabular-nums">{newDishesCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouveaux plats</p>
+                  </div>
+                  <div className="rounded-lg bg-card px-3 py-2">
+                    <p className="text-[18px] font-semibold tabular-nums text-amber-500">{dupCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Doublons</p>
                   </div>
                   <div className="rounded-lg bg-card px-3 py-2">
                     <p className="text-[18px] font-semibold tabular-nums text-primary">+{newCatsCount}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouvelles catégories</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouv. catégories</p>
                   </div>
                   <div className="rounded-lg bg-card px-3 py-2">
                     <p className="text-[18px] font-semibold tabular-nums">{reusedCatsCount}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Catégories existantes</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Cat. existantes</p>
                   </div>
                 </div>
+
+                {dupCount > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-2.5">
+                    <span className="text-[12px] font-medium">Doublons (même nom + prix) :</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setDupStrategy("ignore")}
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${dupStrategy === "ignore" ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                      >
+                        Ignorer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDupStrategy("replace")}
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${dupStrategy === "replace" ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                      >
+                        Remplacer
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 space-y-5">
