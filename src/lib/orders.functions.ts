@@ -87,13 +87,13 @@ async function fetchTenantOrders(tenantId: string): Promise<OrderDTO[]> {
   return orders.map((o) => toDTO(o, items ?? []));
 }
 
-export const listOrdersFn = createServerFn({ method: "GET" }).handler(async () => {
+export const listOrdersFn = createServerFn({ method: "POST" }).handler(async () => {
   const me = await requireUser();
   if (!me.tenantId) return [];
   return fetchTenantOrders(me.tenantId);
 });
 
-export const listAllOrdersForRangeFn = createServerFn({ method: "GET" })
+export const listAllOrdersForRangeFn = createServerFn({ method: "POST" })
   .inputValidator((input: { sinceMs: number }) => input)
   .handler(async ({ data }) => {
     const me = await requireUser();
@@ -360,7 +360,7 @@ export const clearArchivedFn = createServerFn({ method: "POST" }).handler(async 
   return { ok: true };
 });
 
-export const listOrdersForTableFn = createServerFn({ method: "GET" })
+export const listOrdersForTableFn = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ tenantSlug: z.string().min(1), table: z.string().min(1).max(40) }).parse(input))
   .handler(async ({ data }) => {
     const { data: tenant } = await supabaseAdmin
