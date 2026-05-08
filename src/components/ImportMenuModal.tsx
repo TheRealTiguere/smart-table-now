@@ -5,14 +5,23 @@ import { useConfig } from "@/lib/config-store";
 import { X, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+type DupStrategy = "ignore" | "replace";
+
 export function ImportMenuModal({ onClose }: { onClose: () => void }) {
   const scrape = useServerFn(scrapeMenu);
-  const { categories, addCategory, addDish } = useConfig();
+  const { categories, dishes, addCategory, addDish, updateDish } = useConfig();
 
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [dupStrategy, setDupStrategy] = useState<DupStrategy>("ignore");
+
+  // Map name|price → existing dish id (case-insensitive name, price rounded to 2dp)
+  const dupKey = (name: string, price: number) =>
+    `${name.trim().toLowerCase()}|${(Math.round(price * 100) / 100).toFixed(2)}`;
+  const existingByKey = new Map(dishes.map((d) => [dupKey(d.name, d.price), d.id]));
+  const findDup = (d: ScrapedDish) => existingByKey.get(dupKey(d.name, d.price));
 
   async function handleScrape(e: React.FormEvent) {
     e.preventDefault();
@@ -49,22 +58,37 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
       .sort((a, b) => a - b)
       .map((i) => result.dishes[i]);
 
-    // Ensure categories exist (case-insensitive match)
     const catMap = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]));
     const neededCats = [...new Set(picked.map((d) => d.category))];
     for (const name of neededCats) {
-      if (!catMap.has(name.toLowerCase())) {
-        addCategory(name);
-      }
+      if (!catMap.has(name.toLowerCase())) addCategory(name);
     }
-    // After adds, re-read config for new IDs
     const fresh = useConfig.getState().categories;
     const freshMap = new Map(fresh.map((c) => [c.name.toLowerCase(), c.id]));
 
-    let ok = 0;
+    let created = 0;
+    let replaced = 0;
+    let ignored = 0;
     for (const d of picked) {
       const catId = freshMap.get(d.category.toLowerCase());
       if (!catId) continue;
+      const dupId = findDup(d);
+      if (dupId) {
+        if (dupStrategy === "ignore") {
+          ignored++;
+          continue;
+        }
+        // replace: update existing dish in place
+        updateDish(dupId, {
+          name: d.name,
+          desc: d.description ?? "",
+          price: Number.isFinite(d.price) ? d.price : 0,
+          categoryId: catId,
+          photo: d.photo,
+        });
+        replaced++;
+        continue;
+      }
       addDish({
         name: d.name,
         desc: d.description ?? "",
@@ -76,9 +100,14 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
         customAllergens: [],
         available: true,
       });
-      ok++;
+      created++;
     }
-    toast.success(`${ok} plat${ok > 1 ? "s" : ""} importé${ok > 1 ? "s" : ""}.`);
+    const parts = [
+      created > 0 && `${created} créé${created > 1 ? "s" : ""}`,
+      replaced > 0 && `${replaced} remplacé${replaced > 1 ? "s" : ""}`,
+      ignored > 0 && `${ignored} ignoré${ignored > 1 ? "s" : ""}`,
+    ].filter(Boolean);
+    toast.success(`Import terminé · ${parts.join(" · ") || "rien à faire"}.`);
     onClose();
   }
 
@@ -138,6 +167,8 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
             const selectedCatNames = new Set(selectedDishes.map((d) => d.category.toLowerCase()));
             const newCatsCount = [...selectedCatNames].filter((n) => !existingCats.has(n)).length;
             const reusedCatsCount = selectedCatNames.size - newCatsCount;
+            const dupCount = selectedDishes.filter((d) => findDup(d)).length;
+            const newDishesCount = selectedDishes.length - dupCount;
             return (
             <>
               <div className="mt-5 rounded-xl bg-surface px-4 py-3">
@@ -145,20 +176,46 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
                 <p className="mt-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
                   {result.source} · {result.dishes.length} plats trouvés
                 </p>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                   <div className="rounded-lg bg-card px-3 py-2">
-                    <p className="text-[18px] font-semibold tabular-nums">{selectedDishes.length}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Plats à créer</p>
+                    <p className="text-[18px] font-semibold tabular-nums">{newDishesCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouveaux plats</p>
+                  </div>
+                  <div className="rounded-lg bg-card px-3 py-2">
+                    <p className="text-[18px] font-semibold tabular-nums text-amber-500">{dupCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Doublons</p>
                   </div>
                   <div className="rounded-lg bg-card px-3 py-2">
                     <p className="text-[18px] font-semibold tabular-nums text-primary">+{newCatsCount}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouvelles catégories</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nouv. catégories</p>
                   </div>
                   <div className="rounded-lg bg-card px-3 py-2">
                     <p className="text-[18px] font-semibold tabular-nums">{reusedCatsCount}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Catégories existantes</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Cat. existantes</p>
                   </div>
                 </div>
+
+                {dupCount > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-2.5">
+                    <span className="text-[12px] font-medium">Doublons (même nom + prix) :</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setDupStrategy("ignore")}
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${dupStrategy === "ignore" ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                      >
+                        Ignorer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDupStrategy("replace")}
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${dupStrategy === "replace" ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                      >
+                        Remplacer
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 space-y-5">
@@ -183,7 +240,14 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
                               className="mt-1"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="truncate text-[14px] font-medium">{dish.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-[14px] font-medium">{dish.name}</p>
+                                {findDup(dish) && (
+                                  <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                    Doublon · {dupStrategy === "ignore" ? "ignoré" : "remplacé"}
+                                  </span>
+                                )}
+                              </div>
                               {dish.description && (
                                 <p className="line-clamp-2 text-[12px] text-muted-foreground">{dish.description}</p>
                               )}
