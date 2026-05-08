@@ -82,10 +82,12 @@ type ConfigState = {
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
+  lastImportUrl?: string;
 
   setRestaurantName: (n: string) => void;
   setLogo: (logo?: string) => void;
   setTimezone: (tz: string) => void;
+  setLastImportUrl: (url?: string) => void;
 
   addTable: (name: string) => void;
   removeTable: (name: string) => void;
