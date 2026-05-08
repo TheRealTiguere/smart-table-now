@@ -62,11 +62,10 @@ export const scrapeMenu = createServerFn({ method: "POST" })
         maxAge: 0,
         blockAds: true,
         mobile: false,
+        location: { country: "FR", languages: ["fr-FR", "fr"] },
         formats: ["markdown"],
         actions: [
-          { type: "wait", milliseconds: 3000 },
-          { type: "scroll", direction: "down" },
-          { type: "wait", milliseconds: 1500 },
+          { type: "wait", milliseconds: 4000 },
           { type: "scroll", direction: "down" },
           { type: "wait", milliseconds: 1500 },
           { type: "scroll", direction: "down" },
