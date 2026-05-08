@@ -130,7 +130,7 @@
   .shadow-pop { box-shadow: var(--shadow-pop); }
   .shadow-xs { box-shadow: var(--shadow-xs); }
   .glass {
-    background-color: oklch(1 0 0 / 0.72);
+    background-color: color-mix(in oklab, var(--color-background) 72%, transparent);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
