@@ -318,14 +318,25 @@ function CategoriesTab() {
 
 function DishesTab() {
   const { dishes, categories, removeDish, updateDish } = useConfig();
+  const lastImportUrl = useConfig((s) => s.lastImportUrl);
   const [editing, setEditing] = useState<Dish | "new" | null>(null);
   const [importing, setImporting] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   const sortedCats = [...categories].sort((a, b) => a.order - b.order);
 
   return (
     <div>
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
+        {lastImportUrl && (
+          <button
+            onClick={() => setResyncing(true)}
+            title={`Resynchroniser depuis ${lastImportUrl}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-medium hover:bg-secondary/80"
+          >
+            <Download className="h-4 w-4" /> Resynchroniser le menu
+          </button>
+        )}
         <button
           onClick={() => setImporting(true)}
           className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-medium hover:bg-secondary/80"
@@ -340,7 +351,14 @@ function DishesTab() {
           <Plus className="h-4 w-4" /> Nouveau plat
         </button>
       </div>
-      {importing && <ImportMenuModal onClose={() => setImporting(false)} />}
+      {importing && <ImportMenuModal onClose={() => setImporting(false)} initialUrl={lastImportUrl} />}
+      {resyncing && lastImportUrl && (
+        <ImportMenuModal
+          onClose={() => setResyncing(false)}
+          initialUrl={lastImportUrl}
+          autoStart
+        />
+      )}
       {categories.length === 0 && (
         <p className="mt-4 rounded-2xl bg-surface p-6 text-center text-[13px] text-muted-foreground">
           Crée d'abord une catégorie.
