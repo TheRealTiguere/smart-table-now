@@ -12,7 +12,11 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/menu")({
   component: ClientMenu,
   head: () => ({ meta: [{ title: "Menu · Table" }] }),
-  validateSearch: (s: Record<string, unknown>) => ({ table: (s.table as string) || undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    table: (s.table as string) || undefined,
+    r: (s.r as string) || undefined,
+    k: (s.k as string) || undefined,
+  }),
 });
 
 type CartLine = { kind: "dish" | "formula"; id: string; qty: number };
