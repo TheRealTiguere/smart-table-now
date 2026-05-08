@@ -152,6 +152,7 @@ export const useConfig = create<ConfigState>()(
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
       setTimezone: (tz) => set({ timezone: tz }),
+      setLastImportUrl: (url) => set({ lastImportUrl: url }),
 
       addTable: (name) =>
         set((s) => (s.tables.includes(name) ? {} : { tables: [...s.tables, name] })),
