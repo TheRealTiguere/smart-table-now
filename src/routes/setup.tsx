@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { setupStatusFn, initialSetupFn } from "@/lib/auth.functions";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/setup")({
   component: SetupPage,

@@ -7,6 +7,7 @@ import { listTenantsFn, createTenantFn, toggleTenantFn, deleteTenantFn } from "@
 import { logoutFn } from "@/lib/auth.functions";
 import { Plus, Trash2, Power, LogOut, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/super-admin")({
   component: () => (

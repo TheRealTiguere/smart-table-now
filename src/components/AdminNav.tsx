@@ -6,6 +6,7 @@ import { logoutFn } from "@/lib/auth.functions";
 import { useMe } from "@/lib/use-me";
 import { useTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
+import { Logo } from "@/components/Logo";
 
 const mainLinks = [
   { to: "/cuisine" as const, label: "Cuisine" },

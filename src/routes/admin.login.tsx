@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { loginFn, setupStatusFn } from "@/lib/auth.functions";
 import { useMe } from "@/lib/use-me";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/admin/login")({
   component: AdminLogin,
