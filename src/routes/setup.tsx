@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/setup")({
   component: SetupPage,
-  head: () => ({ meta: [{ title: "Configuration initiale · Tabli" }] }),
+  head: () => ({ meta: [{ title: "Configuration initiale · Qorder" }] }),
 });
 
 function SetupPage() {
@@ -56,8 +56,8 @@ function SetupPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-xl px-6 py-16">
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-[10px] bg-foreground" />
-          <span className="font-display text-[19px] font-semibold tracking-tight">Tabli</span>
+          <Logo size={36} />
+          <span className="font-display text-[19px] font-semibold tracking-tight">Qorder</span>
         </div>
         <h1 className="mt-8 font-display text-4xl font-semibold tracking-tight">Configuration initiale</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">

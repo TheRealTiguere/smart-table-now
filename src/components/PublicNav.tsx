@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
+import { Logo } from "@/components/Logo";
 
 export function PublicNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 glass">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
         <Link to="/" className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-[8px] bg-foreground" />
-          <span className="font-display text-[17px] font-semibold tracking-tight">Tabli</span>
+          <Logo size={28} />
+          <span className="font-display text-[17px] font-semibold tracking-tight">Qorder</span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
           <a href="#fonctionnement" className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">Fonctionnement</a>
