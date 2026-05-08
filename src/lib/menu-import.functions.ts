@@ -107,6 +107,11 @@ export const scrapeMenu = createServerFn({ method: "POST" })
     if (!markdown || markdown.length < 100) {
       throw new Error("Page vide ou inaccessible. Vérifie l'URL.");
     }
+    if (/rien à se mettre sous la dent|nothing to eat here|store is closed|restaurant indisponible/i.test(markdown)) {
+      throw new Error(
+        "Uber Eats indique que ce restaurant n'a aucun menu disponible (page « Rien à se mettre sous la dent… »). L'URL pointe peut-être vers une zone où le restaurant n'est pas livré, ou il est fermé. Ouvre-la dans un navigateur en navigation privée pour vérifier qu'elle affiche bien le menu, puis réessaie.",
+      );
+    }
 
     // Step 2: extract dishes from markdown via Lovable AI (Gemini 2.5 Pro — large context)
     const aiKey = process.env.LOVABLE_API_KEY;
