@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
-import { useStore, timeAgo } from "@/lib/store";
+import { useOrders, timeAgo } from "@/lib/use-orders";
 import { useMounted } from "@/lib/use-mounted";
 import { useServerFn } from "@tanstack/react-start";
 import { generateReceiptPdfFn } from "@/lib/receipt.functions";
 import { nextReceiptNumberFn } from "@/lib/settings.functions";
+import { markPaidFn, setOrderEmailFn } from "@/lib/orders.functions";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Download, Mail, Search } from "lucide-react";
@@ -21,11 +23,13 @@ export const Route = createFileRoute("/admin/orders")({
 
 function OrdersHistory() {
   const mounted = useMounted();
-  const archived = useStore((s) => s.archived);
-  const setOrderEmail = useStore((s) => s.setOrderEmail);
-  const markPaid = useStore((s) => s.markPaid);
+  const { data: allOrders } = useOrders();
+  const archived = allOrders.filter((o) => o.status === "served");
+  const setEmailFn = useServerFn(setOrderEmailFn);
+  const payFn = useServerFn(markPaidFn);
   const genPdf = useServerFn(generateReceiptPdfFn);
   const nextRcpt = useServerFn(nextReceiptNumberFn);
+  const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [emailDraft, setEmailDraft] = useState<Record<string, string>>({});
