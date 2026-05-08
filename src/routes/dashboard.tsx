@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
-import { QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil, Clock } from "lucide-react";
+import { QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil, Clock, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useServerFn } from "@tanstack/react-start";
