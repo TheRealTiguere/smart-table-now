@@ -43,7 +43,7 @@ export function AdminNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 glass">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to={isKitchen ? "/cuisine" : "/dashboard"} className="flex items-center gap-2">
           <Logo size={28} />
           <span className="font-display text-[17px] font-semibold tracking-tight">Qorder</span>
           <span className="ml-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
