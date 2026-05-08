@@ -50,9 +50,13 @@ function Dashboard() {
   const archived = useMemo(() => allOrders.filter((o) => o.status === "served"), [allOrders]);
 
   const TABLE_IDS = useConfig((s) => s.tables);
+  const tableNonces = useConfig((s) => s.tableNonces);
   const addTable = useConfig((s) => s.addTable);
   const removeTable = useConfig((s) => s.removeTable);
   const renameTable = useConfig((s) => s.renameTable);
+  const regenerateTableNonce = useConfig((s) => s.regenerateTableNonce);
+  const regenerateAllTableNonces = useConfig((s) => s.regenerateAllTableNonces);
+  const tenantSlug = me?.tenantSlug ?? null;
   const [selected, setSelected] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [editPlan, setEditPlan] = useState(false);
