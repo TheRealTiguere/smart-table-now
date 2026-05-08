@@ -319,12 +319,19 @@ function CategoriesTab() {
 function DishesTab() {
   const { dishes, categories, removeDish, updateDish } = useConfig();
   const [editing, setEditing] = useState<Dish | "new" | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const sortedCats = [...categories].sort((a, b) => a.order - b.order);
 
   return (
     <div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => setImporting(true)}
+          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-medium hover:bg-secondary/80"
+        >
+          <Download className="h-4 w-4" /> Importer Uber/Deliveroo
+        </button>
         <button
           onClick={() => setEditing("new")}
           disabled={categories.length === 0}
@@ -333,6 +340,7 @@ function DishesTab() {
           <Plus className="h-4 w-4" /> Nouveau plat
         </button>
       </div>
+      {importing && <ImportMenuModal onClose={() => setImporting(false)} />}
       {categories.length === 0 && (
         <p className="mt-4 rounded-2xl bg-surface p-6 text-center text-[13px] text-muted-foreground">
           Crée d'abord une catégorie.
