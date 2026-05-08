@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminGuard } from "@/components/AdminGuard";
-import { ArrowUpRight, ArrowDownRight, QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil } from "lucide-react";
-import { useMemo, useState } from "react";
+import { QrCode, X, Check, RotateCcw, Plus, Trash2, Pencil, Clock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { useStore, tableStatus, tableTotal, timeAgo, type TableStatus } from "@/lib/store";
+import { useServerFn } from "@tanstack/react-start";
+import { useOrders, tableStatus, tableTotal, timeAgo, elapsedMinutesLabel } from "@/lib/use-orders";
+import { recallOrderFn, markPaidFn } from "@/lib/orders.functions";
 import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { useMe } from "@/lib/use-me";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -19,14 +22,16 @@ export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Pilotage" }] }),
 });
 
-const STATUS_DOT: Record<TableStatus, string> = {
+type TStatus = "free" | "occupied" | "cooking" | "ready";
+
+const STATUS_DOT: Record<TStatus, string> = {
   free: "bg-border",
   occupied: "bg-muted-foreground",
   cooking: "bg-foreground",
   ready: "bg-primary",
 };
 
-const STATUS_LABEL: Record<TableStatus, string> = {
+const STATUS_LABEL: Record<TStatus, string> = {
   free: "Libre",
   occupied: "En salle",
   cooking: "Cuisine",
@@ -36,11 +41,14 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 function Dashboard() {
   const mounted = useMounted();
   const { data: me } = useMe();
-  const orders = useStore((s) => s.orders);
-  const archived = useStore((s) => s.archived);
-  const recallOrder = useStore((s) => s.recallOrder);
-  const markPaid = useStore((s) => s.markPaid);
-  const reset = useStore((s) => s.reset);
+  const { data: allOrders } = useOrders();
+  const recallFn = useServerFn(recallOrderFn);
+  const payFn = useServerFn(markPaidFn);
+  const qc = useQueryClient();
+
+  const orders = useMemo(() => allOrders.filter((o) => o.status !== "served"), [allOrders]);
+  const archived = useMemo(() => allOrders.filter((o) => o.status === "served"), [allOrders]);
+
   const TABLE_IDS = useConfig((s) => s.tables);
   const addTable = useConfig((s) => s.addTable);
   const removeTable = useConfig((s) => s.removeTable);
@@ -50,6 +58,13 @@ function Dashboard() {
   const [editPlan, setEditPlan] = useState(false);
   const [newTable, setNewTable] = useState("");
 
+  // Tick every minute for live timers
+  const [, force] = useState(0);
+  useEffect(() => {
+    const i = setInterval(() => force((n) => n + 1), 60_000);
+    return () => clearInterval(i);
+  }, []);
+
   const stats = useMemo(() => {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -57,7 +72,7 @@ function Dashboard() {
     const todayActive = orders.filter((o) => o.createdAt >= dayStart);
     const todayArchived = archived.filter((o) => o.createdAt >= dayStart);
     const allToday = [...todayActive, ...todayArchived];
-    const revenue = todayArchived.reduce((s, o) => s + o.total, 0);
+    const revenue = todayArchived.filter((o) => o.paid).reduce((s, o) => s + o.total, 0);
     const activeTables = TABLE_IDS.filter((t) => tableStatus(orders, t) !== "free").length;
     const durations = todayArchived
       .map((o) => (o.servedAt ? o.servedAt - o.createdAt : null))
@@ -66,7 +81,7 @@ function Dashboard() {
       ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length / 60_000)
       : 0;
     return [
-      { label: "Chiffre d'affaires", value: `${revenue}€`, sub: "encaissé aujourd'hui" },
+      { label: "Chiffre d'affaires", value: `${revenue.toFixed(0)}€`, sub: "encaissé aujourd'hui" },
       { label: "Commandes du jour", value: String(allToday.length), sub: `${todayArchived.length} servies` },
       { label: "Tables actives", value: `${activeTables}/${TABLE_IDS.length}`, sub: "en direct" },
       { label: "Temps moyen", value: `${avgMin} min`, sub: "démarrage → servie" },
@@ -75,7 +90,7 @@ function Dashboard() {
 
   const top = useMemo(() => {
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
-    orders.forEach((o) =>
+    allOrders.forEach((o) =>
       o.items.forEach((it) => {
         const cur = map.get(it.name) ?? { name: it.name, qty: 0, revenue: 0 };
         cur.qty += it.qty;
@@ -84,10 +99,10 @@ function Dashboard() {
       }),
     );
     return [...map.values()].sort((a, b) => b.qty - a.qty).slice(0, 5);
-  }, [orders]);
+  }, [allOrders]);
 
   const activity = useMemo(() => {
-    return [...orders]
+    return [...allOrders]
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 6)
       .map((o) => ({
@@ -102,14 +117,15 @@ function Dashboard() {
                 : `${o.table} a passé une commande`,
         a: `${o.total}€`,
       }));
-  }, [orders]);
+  }, [allOrders]);
 
-  const selectedOrders = selected ? orders.filter((o) => o.table === selected && o.status !== "served") : [];
+  const selectedOrders = selected ? orders.filter((o) => o.table === selected) : [];
   const selectedTotal = selectedOrders.reduce((s, o) => s + o.total, 0);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!selected) return;
-    selectedOrders.forEach((o) => markPaid(o.id));
+    await Promise.all(selectedOrders.map((o) => payFn({ data: { id: o.id } })));
+    qc.invalidateQueries({ queryKey: ["orders"] });
     toast.success(`Table ${selected.replace("T", "")} encaissée`, { description: `${selectedTotal}€` });
     setSelected(null);
   };
@@ -135,7 +151,7 @@ function Dashboard() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => qc.invalidateQueries({ queryKey: ["orders"] })}
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary"
             >
               <RotateCcw className="h-3.5 w-3.5" /> Actualiser
@@ -149,7 +165,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label} className="rounded-3xl bg-surface p-6">
@@ -166,7 +181,7 @@ function Dashboard() {
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 className="font-display text-2xl font-semibold tracking-tight">Plan de salle</h2>
               <div className="flex flex-wrap items-center gap-3 text-[11px]">
-                {!editPlan && (Object.keys(STATUS_LABEL) as TableStatus[]).map((k) => (
+                {!editPlan && (Object.keys(STATUS_LABEL) as TStatus[]).map((k) => (
                   <span key={k} className="inline-flex items-center gap-1.5 text-muted-foreground">
                     <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[k]}`} />
                     {STATUS_LABEL[k]}
@@ -187,10 +202,7 @@ function Dashboard() {
                   e.preventDefault();
                   const name = newTable.trim();
                   if (!name) return;
-                  if (TABLE_IDS.includes(name)) {
-                    toast.error("Cette table existe déjà");
-                    return;
-                  }
+                  if (TABLE_IDS.includes(name)) return toast.error("Cette table existe déjà");
                   addTable(name);
                   setNewTable("");
                   toast.success(`Table ${name} ajoutée`);
@@ -200,14 +212,11 @@ function Dashboard() {
                 <input
                   value={newTable}
                   onChange={(e) => setNewTable(e.target.value)}
-                  placeholder="Nom de la table (ex. T13, Terrasse 1…)"
+                  placeholder="Nom de la table"
                   maxLength={20}
                   className="flex-1 rounded-2xl bg-card px-4 py-2.5 text-[14px] outline-none ring-1 ring-inset ring-border focus:ring-foreground"
                 />
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-1.5 rounded-2xl bg-foreground px-4 py-2.5 text-[13px] font-medium text-background hover:opacity-90"
-                >
+                <button type="submit" className="inline-flex items-center gap-1.5 rounded-2xl bg-foreground px-4 py-2.5 text-[13px] font-medium text-background hover:opacity-90">
                   <Plus className="h-4 w-4" /> Ajouter
                 </button>
               </form>
@@ -217,18 +226,13 @@ function Dashboard() {
               {TABLE_IDS.map((id) => {
                 const status = tableStatus(orders, id);
                 const total = tableTotal(orders, id);
+                const oldest = orders.filter((o) => o.table === id).sort((a, b) => a.createdAt - b.createdAt)[0];
                 if (editPlan) {
                   return (
-                    <div
-                      key={id}
-                      className="relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-card p-3 text-center shadow-xs"
-                    >
+                    <div key={id} className="relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-card p-3 text-center shadow-xs">
                       <button
                         onClick={() => {
-                          if (status !== "free") {
-                            toast.error("Table occupée — impossible de la supprimer");
-                            return;
-                          }
+                          if (status !== "free") return toast.error("Table occupée");
                           if (confirm(`Supprimer la table ${id} ?`)) {
                             removeTable(id);
                             if (selected === id) setSelected(null);
@@ -236,7 +240,6 @@ function Dashboard() {
                           }
                         }}
                         className="absolute right-1.5 top-1.5 rounded-full bg-foreground/90 p-1 text-background hover:bg-foreground"
-                        aria-label={`Supprimer ${id}`}
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -244,15 +247,8 @@ function Dashboard() {
                         defaultValue={id}
                         onBlur={(e) => {
                           const v = e.target.value.trim();
-                          if (!v || v === id) {
-                            e.target.value = id;
-                            return;
-                          }
-                          if (TABLE_IDS.includes(v)) {
-                            toast.error("Nom déjà utilisé");
-                            e.target.value = id;
-                            return;
-                          }
+                          if (!v || v === id) { e.target.value = id; return; }
+                          if (TABLE_IDS.includes(v)) { toast.error("Nom déjà utilisé"); e.target.value = id; return; }
                           renameTable(id, v);
                           if (selected === id) setSelected(v);
                         }}
@@ -271,7 +267,12 @@ function Dashboard() {
                     <span className={`absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full ${STATUS_DOT[status]}`} />
                     <span className="font-display text-2xl font-semibold tracking-tight">{id}</span>
                     <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span>
-                    {total > 0 && <span className="mt-1 text-[11px] font-medium tabular-nums">{total}€</span>}
+                    {oldest && (
+                      <span className="mt-1 inline-flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
+                        <Clock className="h-2.5 w-2.5" /> {elapsedMinutesLabel(oldest.createdAt)}
+                      </span>
+                    )}
+                    {total > 0 && <span className="mt-0.5 text-[11px] font-medium tabular-nums">{total}€</span>}
                   </button>
                 );
               })}
@@ -332,7 +333,6 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Recently served (recall window) */}
         {archived.length > 0 && (
           <div className="mt-4 rounded-3xl bg-surface p-6">
             <div className="flex items-baseline justify-between">
@@ -343,22 +343,25 @@ function Dashboard() {
               {[...archived].sort((a, b) => b.createdAt - a.createdAt).slice(0, 6).map((o) => (
                 <li key={o.id} className="flex items-center justify-between py-3.5 text-[14px]">
                   <div>
-                    <p className="font-medium">{o.table} · #{o.id}</p>
+                    <p className="font-medium">{o.table}</p>
                     <p className="text-[12px] text-muted-foreground">
                       {o.items.map((it) => `${it.qty}× ${it.name}`).join(" · ")} — {timeAgo(o.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-display text-[15px] font-semibold tabular-nums">{o.total}€</span>
-                    <button
-                      onClick={() => {
-                        recallOrder(o.id);
-                        toast.success(`Commande #${o.id} renvoyée en cuisine`);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[12px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
-                    >
-                      <RotateCcw className="h-3 w-3" /> Rappeler
-                    </button>
+                    {!o.paid && (
+                      <button
+                        onClick={async () => {
+                          await recallFn({ data: { id: o.id } });
+                          qc.invalidateQueries({ queryKey: ["orders"] });
+                          toast.success("Commande renvoyée en cuisine");
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[12px] font-medium ring-1 ring-border hover:bg-foreground hover:text-background"
+                      >
+                        <RotateCcw className="h-3 w-3" /> Rappeler
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -367,7 +370,7 @@ function Dashboard() {
         )}
       </div>
 
-      {/* Table detail sheet */}
+      {/* Table sheet */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 backdrop-blur-sm sm:items-center" onClick={() => setSelected(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-[2rem] bg-card p-6 shadow-pop animate-in slide-in-from-bottom sm:rounded-3xl">
@@ -379,7 +382,6 @@ function Dashboard() {
               </div>
               <button onClick={() => setSelected(null)} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
             </div>
-
             {selectedOrders.length === 0 ? (
               <p className="mt-6 text-center text-[14px] text-muted-foreground">Aucune commande active.</p>
             ) : (
@@ -388,26 +390,14 @@ function Dashboard() {
                   {selectedOrders.map((o) => (
                     <li key={o.id} className="rounded-2xl bg-surface p-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-medium text-muted-foreground">#{o.id} · {timeAgo(o.createdAt)}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
-                          {o.status === "ready" && (
-                            <button
-                              onClick={() => {
-                                recallOrder(o.id);
-                                toast.success(`Commande #${o.id} renvoyée en cuisine`);
-                              }}
-                              className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border hover:bg-foreground hover:text-background"
-                              title="Renvoyer en préparation"
-                            >
-                              <RotateCcw className="h-3 w-3" /> Rappeler
-                            </button>
-                          )}
-                        </div>
+                        <span className="text-[12px] font-medium text-muted-foreground inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {elapsedMinutesLabel(o.createdAt)}
+                        </span>
+                        <span className="text-[12px] font-medium">{o.status === "new" ? "Reçue" : o.status === "cooking" ? "En préparation" : "Prête"}</span>
                       </div>
                       <ul className="mt-2 space-y-1 text-[13px]">
-                        {o.items.map((it, i) => (
-                          <li key={i} className="flex justify-between">
+                        {o.items.map((it) => (
+                          <li key={it.id} className="flex justify-between">
                             <span><span className="tabular-nums text-muted-foreground">{it.qty}× </span>{it.name}</span>
                             <span className="tabular-nums">{it.qty * it.price}€</span>
                           </li>
@@ -425,20 +415,13 @@ function Dashboard() {
                 </button>
               </>
             )}
-
-            <Link
-              to="/menu"
-              search={{ table: selected }}
-              onClick={() => setSelected(null)}
-              className="mt-3 block text-center text-[12px] text-muted-foreground underline-offset-4 hover:underline"
-            >
+            <Link to="/menu" search={{ table: selected }} onClick={() => setSelected(null)} className="mt-3 block text-center text-[12px] text-muted-foreground underline-offset-4 hover:underline">
               Ouvrir le menu de cette table →
             </Link>
           </div>
         </div>
       )}
 
-      {/* QR sheet */}
       {qrOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4" onClick={() => setQrOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-3xl bg-card p-6 shadow-pop animate-in fade-in zoom-in-95">
@@ -461,10 +444,7 @@ function Dashboard() {
               })}
             </div>
             <button
-              onClick={() => {
-                window.print();
-                toast.success("Impression lancée");
-              }}
+              onClick={() => { window.print(); toast.success("Impression lancée"); }}
               className="mt-5 w-full rounded-2xl bg-foreground py-3.5 text-[14px] font-medium text-background transition-opacity hover:opacity-90"
             >
               Imprimer
