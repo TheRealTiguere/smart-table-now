@@ -47,10 +47,11 @@ function OrdersHistory() {
       );
     });
 
-  const ensureReceipt = async (orderId: string, current?: string) => {
+  const ensureReceipt = async (orderId: string, current?: string | null) => {
     if (current) return current;
     const { number } = await nextRcpt();
-    markPaid(orderId, { receiptNumber: number });
+    await payFn({ data: { id: orderId, receiptNumber: number } });
+    qc.invalidateQueries({ queryKey: ["orders"] });
     return number;
   };
 
@@ -65,8 +66,8 @@ function OrdersHistory() {
           table: order.table,
           receiptNumber,
           createdAt: order.createdAt,
-          paidAt: order.paidAt,
-          paymentMethod: order.paymentMethod,
+          paidAt: order.paidAt ?? undefined,
+          paymentMethod: order.paymentMethod ?? undefined,
           items: order.items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
         },
       });
@@ -93,9 +94,10 @@ function OrdersHistory() {
       toast.error("Email invalide");
       return;
     }
-    setOrderEmail(orderId, email);
-    toast("Envoi par email", {
-      description: "La configuration d'un domaine email est requise. La note a été enregistrée pour cet email — téléchargez-la en attendant.",
+    await setEmailFn({ data: { id: orderId, email } });
+    qc.invalidateQueries({ queryKey: ["orders"] });
+    toast("Email enregistré", {
+      description: "La note a été enregistrée pour cet email — téléchargez-la en attendant.",
     });
   };
 
