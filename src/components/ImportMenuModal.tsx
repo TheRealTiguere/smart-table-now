@@ -7,11 +7,11 @@ import { toast } from "sonner";
 
 type DupStrategy = "ignore" | "replace";
 
-export function ImportMenuModal({ onClose }: { onClose: () => void }) {
+export function ImportMenuModal({ onClose, initialUrl, autoStart }: { onClose: () => void; initialUrl?: string; autoStart?: boolean }) {
   const scrape = useServerFn(scrapeMenu);
-  const { categories, dishes, addCategory, addDish, updateDish } = useConfig();
+  const { categories, dishes, addCategory, addDish, updateDish, setLastImportUrl } = useConfig();
 
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
