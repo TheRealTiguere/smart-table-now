@@ -44,41 +44,7 @@ const NEXT: Record<OrderStatus, OrderStatus> = {
   served: "served",
 };
 
-const seed = (): Order[] => {
-  const now = Date.now();
-  return [
-    {
-      id: "140",
-      table: "T12",
-      items: [
-        { id: "3", name: "Tagliatelles truffe", price: 22, qty: 4 },
-        { id: "2", name: "Vitello tonnato", price: 16, qty: 4 },
-      ],
-      status: "cooking",
-      createdAt: now - 5 * 60_000,
-      total: 22 * 4 + 16 * 4,
-    },
-    {
-      id: "141",
-      table: "T3",
-      items: [
-        { id: "4", name: "Risotto Milanese", price: 19, qty: 1 },
-        { id: "5", name: "Arrabbiata piccante", price: 15, qty: 1, note: "extra piment" },
-      ],
-      status: "new",
-      createdAt: now - 2 * 60_000,
-      total: 19 + 15,
-    },
-    {
-      id: "138",
-      table: "T9",
-      items: [{ id: "6", name: "Tiramisu maison", price: 8, qty: 3 }],
-      status: "ready",
-      createdAt: now - 12 * 60_000,
-      total: 24,
-    },
-  ];
-};
+const seed = (): Order[] => [];
 
 export const useStore = create<State>()(
   persist(

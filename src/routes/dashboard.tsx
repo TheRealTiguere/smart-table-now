@@ -127,10 +127,10 @@ function Dashboard() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => reset()}
+              onClick={() => window.location.reload()}
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Réinitialiser
+              <RotateCcw className="h-3.5 w-3.5" /> Actualiser
             </button>
             <button
               onClick={() => setQrOpen(true)}
