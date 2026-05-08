@@ -58,8 +58,26 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       body: JSON.stringify({
         url,
         onlyMainContent: false,
-        waitFor: 8000,
+        waitFor: 5000,
+        maxAge: 0,
+        blockAds: true,
+        mobile: false,
         formats: ["markdown"],
+        actions: [
+          { type: "wait", milliseconds: 3000 },
+          { type: "scroll", direction: "down" },
+          { type: "wait", milliseconds: 1500 },
+          { type: "scroll", direction: "down" },
+          { type: "wait", milliseconds: 1500 },
+          { type: "scroll", direction: "down" },
+          { type: "wait", milliseconds: 1500 },
+          { type: "scroll", direction: "down" },
+          { type: "wait", milliseconds: 1500 },
+          { type: "scroll", direction: "down" },
+          { type: "wait", milliseconds: 1500 },
+          { type: "scroll", direction: "down" },
+          { type: "wait", milliseconds: 2000 },
+        ],
       }),
     });
 
