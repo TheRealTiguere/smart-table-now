@@ -186,13 +186,63 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       );
     }
 
-    const dishes: ScrapedDish[] = parsed.data.dishes.map((d) => ({
-      name: d.name.trim(),
-      description: (d.description ?? "").trim(),
-      price: Math.round(d.price * 100) / 100,
-      photo: d.photo,
-      category: (d.category || "Import").trim(),
-    }));
+async function fetchWikipediaImage(query: string): Promise<string | undefined> {
+  try {
+    const headers = { "User-Agent": "QorderMenuImport/1.0 (contact@qorder.app)" };
+    
+    let title: string | undefined;
+    
+    let searchRes = await fetch(`https://fr.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&srlimit=1`, { headers });
+    if (searchRes.ok) {
+      let searchData = await searchRes.json();
+      title = searchData.query?.search?.[0]?.title;
+    }
+
+    if (!title && query.split(" ").length > 2) {
+      const shortQuery = query.split(" ").slice(0, 2).join(" ");
+      searchRes = await fetch(`https://fr.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(shortQuery)}&utf8=&format=json&srlimit=1`, { headers });
+      if (searchRes.ok) {
+        let searchData = await searchRes.json();
+        title = searchData.query?.search?.[0]?.title;
+      }
+    }
+
+    if (!title) return undefined;
+
+    const imgRes = await fetch(`https://fr.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles=${encodeURIComponent(title)}`, { headers });
+    if (!imgRes.ok) return undefined;
+    const imgData = await imgRes.json();
+    const pages = imgData.query?.pages;
+    if (pages) {
+      const page = Object.values(pages)[0] as any;
+      if (page?.original?.source) {
+        return page.original.source;
+      }
+    }
+  } catch (e) {
+    console.error("Wiki fetch error:", e);
+  }
+  return undefined;
+}
+
+    const dishesPromises = parsed.data.dishes.map(async (d) => {
+      let photo = d.photo;
+      if (!photo || photo.trim() === "") {
+        const wikiPhoto = await fetchWikipediaImage(d.name.trim());
+        if (wikiPhoto) {
+          photo = wikiPhoto;
+        }
+      }
+      return {
+        name: d.name.trim(),
+        description: (d.description ?? "").trim(),
+        price: Math.round(d.price * 100) / 100,
+        photo,
+        category: (d.category || "Import").trim(),
+      };
+    });
+
+    const dishes: ScrapedDish[] = await Promise.all(dishesPromises);
 
     return {
       source,
@@ -201,3 +251,4 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       dishes,
     };
   });
+

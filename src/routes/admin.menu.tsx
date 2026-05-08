@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
 import { useState, useRef, useMemo, type ChangeEvent } from "react";
+import { useMe } from "@/lib/use-me";
 import {
   useConfig,
   useConfigHydrated,
@@ -55,6 +56,7 @@ function readImageAsDataUrl(file: File, max = 800): Promise<string> {
 function MenuAdmin() {
   const hydrated = useConfigHydrated();
   const config = useConfig();
+  const { data: me } = useMe();
   const [tab, setTab] = useState<"identite" | "categories" | "plats" | "formules">("identite");
 
   if (!hydrated) return <div className="min-h-screen bg-background" />;
@@ -71,7 +73,7 @@ function MenuAdmin() {
           </div>
           <Link
             to="/menu"
-            search={{ table: "T1" }}
+            search={{ table: "T1", r: me?.tenantSlug || undefined }}
             target="_blank"
             className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-medium hover:bg-secondary/80"
           >
