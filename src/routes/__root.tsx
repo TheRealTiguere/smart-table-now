@@ -10,6 +10,9 @@ import {
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/lib/theme";
+
+const themeInitScript = `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
 function NotFoundComponent() {
   return (
@@ -99,6 +102,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <HeadContent />
       </head>
       <body>
@@ -114,8 +118,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster position="top-center" closeButton />
+      <ThemeProvider>
+        <Outlet />
+        <Toaster position="top-center" closeButton />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
