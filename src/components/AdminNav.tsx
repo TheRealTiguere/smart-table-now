@@ -25,6 +25,7 @@ export function AdminNav() {
   const qc = useQueryClient();
   const logout = useServerFn(logoutFn);
   const { data: me } = useMe();
+  const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -72,6 +73,13 @@ export function AdminNav() {
           )}
         </nav>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggle}
+            aria-label="Basculer le thème"
+            className="inline-flex items-center justify-center rounded-full bg-secondary p-2 text-foreground transition-opacity hover:opacity-80"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           {!isKitchen && (
             <div ref={ref} className="relative">
               <button
