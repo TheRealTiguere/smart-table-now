@@ -155,10 +155,7 @@ function Dashboard() {
             <div key={s.label} className="rounded-3xl bg-surface p-6">
               <p className="text-[13px] text-muted-foreground">{s.label}</p>
               <p className="mt-3 font-display text-4xl font-semibold tracking-tight tabular-nums">{s.value}</p>
-              <div className={`mt-2 inline-flex items-center gap-1 text-[12px] font-medium ${s.up ? "text-primary" : "text-muted-foreground"}`}>
-                {s.up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                {s.delta}
-              </div>
+              <p className="mt-2 text-[12px] text-muted-foreground">{s.sub}</p>
             </div>
           ))}
         </div>
