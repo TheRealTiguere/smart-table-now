@@ -4,6 +4,20 @@ import { requireUser } from "./auth.functions";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
+export const resolveTenantFn = createServerFn({ method: "GET" })
+  .inputValidator((input: { slug?: string }) => input ?? {})
+  .handler(async ({ data }) => {
+    const q = supabaseAdmin
+      .from("tenants")
+      .select("id, slug, name, timezone")
+      .eq("active", true);
+    const { data: rows, error } = data?.slug
+      ? await q.eq("slug", data.slug).limit(1)
+      : await q.order("created_at", { ascending: true }).limit(1);
+    if (error) throw new Error(error.message);
+    return rows?.[0] ?? null;
+  });
+
 export const listTenantsFn = createServerFn({ method: "GET" }).handler(async () => {
   await requireUser("super_admin");
   const { data, error } = await supabaseAdmin

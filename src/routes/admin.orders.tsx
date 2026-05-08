@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
-import { useStore, timeAgo } from "@/lib/store";
+import { useOrders, timeAgo } from "@/lib/use-orders";
 import { useMounted } from "@/lib/use-mounted";
 import { useServerFn } from "@tanstack/react-start";
 import { generateReceiptPdfFn } from "@/lib/receipt.functions";
 import { nextReceiptNumberFn } from "@/lib/settings.functions";
+import { markPaidFn, setOrderEmailFn } from "@/lib/orders.functions";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Download, Mail, Search } from "lucide-react";
@@ -21,11 +23,13 @@ export const Route = createFileRoute("/admin/orders")({
 
 function OrdersHistory() {
   const mounted = useMounted();
-  const archived = useStore((s) => s.archived);
-  const setOrderEmail = useStore((s) => s.setOrderEmail);
-  const markPaid = useStore((s) => s.markPaid);
+  const { data: allOrders } = useOrders();
+  const archived = allOrders.filter((o) => o.status === "served");
+  const setEmailFn = useServerFn(setOrderEmailFn);
+  const payFn = useServerFn(markPaidFn);
   const genPdf = useServerFn(generateReceiptPdfFn);
   const nextRcpt = useServerFn(nextReceiptNumberFn);
+  const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [emailDraft, setEmailDraft] = useState<Record<string, string>>({});
@@ -43,10 +47,11 @@ function OrdersHistory() {
       );
     });
 
-  const ensureReceipt = async (orderId: string, current?: string) => {
+  const ensureReceipt = async (orderId: string, current?: string | null) => {
     if (current) return current;
     const { number } = await nextRcpt();
-    markPaid(orderId, { receiptNumber: number });
+    await payFn({ data: { id: orderId, receiptNumber: number } });
+    qc.invalidateQueries({ queryKey: ["orders"] });
     return number;
   };
 
@@ -61,8 +66,8 @@ function OrdersHistory() {
           table: order.table,
           receiptNumber,
           createdAt: order.createdAt,
-          paidAt: order.paidAt,
-          paymentMethod: order.paymentMethod,
+          paidAt: order.paidAt ?? undefined,
+          paymentMethod: order.paymentMethod ?? undefined,
           items: order.items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
         },
       });
@@ -89,9 +94,10 @@ function OrdersHistory() {
       toast.error("Email invalide");
       return;
     }
-    setOrderEmail(orderId, email);
-    toast("Envoi par email", {
-      description: "La configuration d'un domaine email est requise. La note a été enregistrée pour cet email — téléchargez-la en attendant.",
+    await setEmailFn({ data: { id: orderId, email } });
+    qc.invalidateQueries({ queryKey: ["orders"] });
+    toast("Email enregistré", {
+      description: "La note a été enregistrée pour cet email — téléchargez-la en attendant.",
     });
   };
 

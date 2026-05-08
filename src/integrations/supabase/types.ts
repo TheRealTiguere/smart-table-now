@@ -283,6 +283,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          done: boolean
           id: string
           kind: string
           name: string
@@ -291,8 +292,10 @@ export type Database = {
           price: number
           qty: number
           ref_id: string | null
+          sort_order: number
         }
         Insert: {
+          done?: boolean
           id?: string
           kind: string
           name: string
@@ -301,8 +304,10 @@ export type Database = {
           price: number
           qty?: number
           ref_id?: string | null
+          sort_order?: number
         }
         Update: {
+          done?: boolean
           id?: string
           kind?: string
           name?: string
@@ -311,6 +316,7 @@ export type Database = {
           price?: number
           qty?: number
           ref_id?: string | null
+          sort_order?: number
         }
         Relationships: [
           {
@@ -328,8 +334,10 @@ export type Database = {
           customer_email: string | null
           id: string
           paid: boolean
+          paid_at: string | null
           payment_method: string | null
           receipt_number: string | null
+          served_at: string | null
           status: string
           table_name: string
           tenant_id: string
@@ -341,8 +349,10 @@ export type Database = {
           customer_email?: string | null
           id?: string
           paid?: boolean
+          paid_at?: string | null
           payment_method?: string | null
           receipt_number?: string | null
+          served_at?: string | null
           status?: string
           table_name: string
           tenant_id: string
@@ -354,8 +364,10 @@ export type Database = {
           customer_email?: string | null
           id?: string
           paid?: boolean
+          paid_at?: string | null
           payment_method?: string | null
           receipt_number?: string | null
+          served_at?: string | null
           status?: string
           table_name?: string
           tenant_id?: string

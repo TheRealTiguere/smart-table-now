@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminGuard } from "@/components/AdminGuard";
 import { AdminNav } from "@/components/AdminNav";
-import { useStore } from "@/lib/store";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listAllOrdersForRangeFn, clearArchivedFn } from "@/lib/orders.functions";
 import { useConfig } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { useMemo, useState } from "react";
@@ -46,18 +48,25 @@ function rangeStart(r: Range, now: Date = new Date()): number {
 
 function AnalyticsPage() {
   const mounted = useMounted();
-  const orders = useStore((s) => s.orders);
-  const archived = useStore((s) => s.archived);
-  const clearHistory = useStore((s) => s.clearHistory);
+  const listFn = useServerFn(listAllOrdersForRangeFn);
+  const clearFn = useServerFn(clearArchivedFn);
   const restaurantName = useConfig((s) => s.restaurantName);
+  const qc = useQueryClient();
   const [range, setRange] = useState<Range>("day");
 
-  const all = useMemo(() => [...orders, ...archived], [orders, archived]);
-
-  const filtered = useMemo(() => {
-    const start = rangeStart(range);
-    return all.filter((o) => o.createdAt >= start);
-  }, [all, range]);
+  const sinceMs = rangeStart(range);
+  const q = useQuery({
+    queryKey: ["analytics", range],
+    queryFn: () => listFn({ data: { sinceMs } }),
+    refetchInterval: 30_000,
+  });
+  const filtered = q.data ?? [];
+  const clearHistory = async () => {
+    await clearFn();
+    qc.invalidateQueries({ queryKey: ["analytics"] });
+    qc.invalidateQueries({ queryKey: ["orders"] });
+    toast.success("Historique effacé");
+  };
 
   const stats = useMemo(() => {
     const revenue = filtered.reduce((s, o) => s + o.total, 0);
@@ -272,7 +281,6 @@ function AnalyticsPage() {
                 onClick={() => {
                   if (confirm("Effacer tout l'historique archivé ?")) {
                     clearHistory();
-                    toast.success("Historique effacé");
                   }
                 }}
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-secondary hover:text-foreground"

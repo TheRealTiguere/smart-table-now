@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, Leaf, Flame, X, ChevronUp, Check, Image as ImageIcon, Info } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { resolveTenantFn } from "@/lib/tenants.functions";
+import { createOrderFn, listOrdersForTableFn } from "@/lib/orders.functions";
 import { useConfig, useConfigHydrated, ALLERGEN_LABELS, isFormulaActiveNow } from "@/lib/config-store";
 import { useMounted } from "@/lib/use-mounted";
 import { toast } from "sonner";
@@ -18,20 +21,28 @@ function ClientMenu() {
   const mounted = useMounted();
   const cfgReady = useConfigHydrated();
   const search = Route.useSearch();
-
-  const currentTable = useStore((s) => s.currentTable);
-  const setCurrentTable = useStore((s) => s.setCurrentTable);
-  const addOrder = useStore((s) => s.addOrder);
-  const allOrders = useStore((s) => s.orders);
+  const resolveTenant = useServerFn(resolveTenantFn);
+  const createOrder = useServerFn(createOrderFn);
+  const listForTable = useServerFn(listOrdersForTableFn);
 
   const { restaurantName, logo, categories, dishes, formulas, timezone } = useConfig();
+  const table = search.table || "T1";
 
-  const table = search.table || currentTable;
-  const myOrders = allOrders.filter((o) => o.table === table && o.status !== "served");
+  const tenantQ = useQuery({
+    queryKey: ["resolve-tenant"],
+    queryFn: () => resolveTenant({ data: {} }),
+    staleTime: 5 * 60_000,
+  });
+  const tenantSlug = tenantQ.data?.slug ?? null;
 
-  useEffect(() => {
-    if (search.table && search.table !== currentTable) setCurrentTable(search.table);
-  }, [search.table, currentTable, setCurrentTable]);
+  const ordersQ = useQuery({
+    queryKey: ["table-orders", tenantSlug, table],
+    queryFn: () => listForTable({ data: { tenantSlug: tenantSlug!, table } }),
+    enabled: !!tenantSlug,
+    refetchInterval: 15_000,
+  });
+  const myOrders = ordersQ.data ?? [];
+
 
   // Tick every minute so schedule-restricted formulas appear/disappear in real time
   const [, setNowTick] = useState(0);
@@ -107,10 +118,12 @@ function ClientMenu() {
   const total = useMemo(() => cart.reduce((s, l) => s + linePrice(l) * l.qty, 0), [cart, dishes, formulas]);
   const count = cart.reduce((a, b) => a + b.qty, 0);
 
-  const send = () => {
+  const send = async () => {
     if (count === 0) return;
+    if (!tenantSlug) return toast.error("Restaurant introuvable");
     const items = cart.map((l) => ({
-      id: `${l.kind}-${l.id}`,
+      kind: l.kind,
+      refId: l.id,
       name: l.kind === "formula" ? `Formule · ${lineName(l)}` : lineName(l),
       price: linePrice(l),
       qty: l.qty,
@@ -119,14 +132,19 @@ function ClientMenu() {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return toast.error("Email invalide");
     }
-    const orderId = addOrder({ table, items, customerEmail: email || undefined });
-    setCart([]);
-    setOpen(false);
-    setSent(true);
-    toast.success(`Commande #${orderId} envoyée en cuisine`, {
-      description: `Table ${table.replace("T", "")} · ${total}€`,
-    });
-    setTimeout(() => setSent(false), 2500);
+    try {
+      await createOrder({ data: { tenantSlug, table, customerEmail: email || null, items } });
+      setCart([]);
+      setOpen(false);
+      setSent(true);
+      ordersQ.refetch();
+      toast.success("Commande envoyée en cuisine", {
+        description: `Table ${table.replace("T", "")} · ${total}€`,
+      });
+      setTimeout(() => setSent(false), 2500);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   if (!mounted || !cfgReady) {
