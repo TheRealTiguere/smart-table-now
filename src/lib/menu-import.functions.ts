@@ -108,8 +108,14 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       throw new Error("Page vide ou inaccessible. Vérifie l'URL.");
     }
     if (/rien à se mettre sous la dent|nothing to eat here|store is closed|restaurant indisponible/i.test(markdown)) {
+      // Uber Eats store URLs require the trailing UUID, e.g. /fr/store/<slug>/<UUID>
+      const looksTruncated =
+        source === "ubereats" &&
+        !/\/store\/[^/]+\/[A-Za-z0-9_-]{10,}/.test(url);
       throw new Error(
-        "Uber Eats indique que ce restaurant n'a aucun menu disponible (page « Rien à se mettre sous la dent… »). L'URL pointe peut-être vers une zone où le restaurant n'est pas livré, ou il est fermé. Ouvre-la dans un navigateur en navigation privée pour vérifier qu'elle affiche bien le menu, puis réessaie.",
+        looksTruncated
+          ? "URL Uber Eats incomplète : il manque l'identifiant du restaurant à la fin. Ouvre la fiche du restaurant sur Uber Eats et copie l'URL COMPLÈTE depuis la barre d'adresse — elle doit ressembler à https://www.ubereats.com/fr/store/<nom>/<long-identifiant>."
+          : "Uber Eats indique « Rien à se mettre sous la dent… ». Le restaurant est peut-être fermé ou non livré dans la zone détectée. Vérifie l'URL dans un navigateur en navigation privée puis réessaie.",
       );
     }
 
