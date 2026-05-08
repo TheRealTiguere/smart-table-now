@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { loginFn, setupStatusFn } from "@/lib/auth.functions";
 import { useMe } from "@/lib/use-me";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/admin/login")({
   component: AdminLogin,
@@ -59,8 +60,8 @@ function AdminLogin() {
         </Link>
 
         <div className="mt-12 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-[10px] bg-foreground" />
-          <span className="font-display text-[19px] font-semibold tracking-tight">Tabli</span>
+          <Logo size={36} />
+          <span className="font-display text-[19px] font-semibold tracking-tight">Qorder</span>
         </div>
 
         <h1 className="mt-8 font-display text-4xl font-semibold tracking-tight">Espace équipe</h1>

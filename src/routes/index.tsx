@@ -6,7 +6,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "Tabli — Le service, simplifié." },
+      { title: "Qorder — Le service, simplifié." },
       { name: "description", content: "Vos clients scannent, commandent. La cuisine reçoit. Sans serveur, sans attente." },
     ],
   }),
@@ -161,7 +161,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border py-6 text-center text-[12px] text-muted-foreground">
-        © 2026 Tabli
+        © 2026 Qorder
       </footer>
     </div>
   );

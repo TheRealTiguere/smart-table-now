@@ -7,6 +7,7 @@ import { listTenantsFn, createTenantFn, toggleTenantFn, deleteTenantFn } from "@
 import { logoutFn } from "@/lib/auth.functions";
 import { Plus, Trash2, Power, LogOut, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/super-admin")({
   component: () => (
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/super-admin")({
       <SuperAdminPage />
     </AdminGuard>
   ),
-  head: () => ({ meta: [{ title: "Super-admin · Tabli" }] }),
+  head: () => ({ meta: [{ title: "Super-admin · Qorder" }] }),
 });
 
 function SuperAdminPage() {
@@ -75,8 +76,8 @@ function SuperAdminPage() {
       <header className="sticky top-0 z-40 border-b border-border/60 glass">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-[8px] bg-foreground" />
-            <span className="font-display text-[17px] font-semibold tracking-tight">Tabli</span>
+            <Logo size={28} />
+            <span className="font-display text-[17px] font-semibold tracking-tight">Qorder</span>
             <span className="ml-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Super-admin
             </span>
