@@ -199,7 +199,8 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
                 })}
               </div>
             </>
-          )}
+            );
+          })()}
         </div>
 
         {result && (
