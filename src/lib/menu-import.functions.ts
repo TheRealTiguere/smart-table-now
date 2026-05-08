@@ -57,8 +57,8 @@ export const scrapeMenu = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         url,
-        onlyMainContent: true,
-        waitFor: 2500,
+        onlyMainContent: false,
+        waitFor: 6000,
         formats: [
           {
             type: "json",
