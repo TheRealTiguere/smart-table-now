@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { scrapeMenu, type ScrapeResult, type ScrapedDish } from "@/lib/menu-import.functions";
 import { useConfig } from "@/lib/config-store";
@@ -7,11 +7,11 @@ import { toast } from "sonner";
 
 type DupStrategy = "ignore" | "replace";
 
-export function ImportMenuModal({ onClose }: { onClose: () => void }) {
+export function ImportMenuModal({ onClose, initialUrl, autoStart }: { onClose: () => void; initialUrl?: string; autoStart?: boolean }) {
   const scrape = useServerFn(scrapeMenu);
-  const { categories, dishes, addCategory, addDish, updateDish } = useConfig();
+  const { categories, dishes, addCategory, addDish, updateDish, setLastImportUrl } = useConfig();
 
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -23,19 +23,32 @@ export function ImportMenuModal({ onClose }: { onClose: () => void }) {
   const existingByKey = new Map(dishes.map((d) => [dupKey(d.name, d.price), d.id]));
   const findDup = (d: ScrapedDish) => existingByKey.get(dupKey(d.name, d.price));
 
-  async function handleScrape(e: React.FormEvent) {
-    e.preventDefault();
+  async function runScrape(targetUrl: string) {
     setLoading(true);
     try {
-      const r = await scrape({ data: { url: url.trim() } });
+      const r = await scrape({ data: { url: targetUrl } });
       setResult(r);
       setSelected(new Set(r.dishes.map((_, i) => i)));
+      setLastImportUrl(targetUrl);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
   }
+
+  async function handleScrape(e: React.FormEvent) {
+    e.preventDefault();
+    await runScrape(url.trim());
+  }
+
+  // Auto-start when re-syncing from admin panel
+  useEffect(() => {
+    if (autoStart && initialUrl && !result && !loading) {
+      void runScrape(initialUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function toggle(i: number) {
     const s = new Set(selected);

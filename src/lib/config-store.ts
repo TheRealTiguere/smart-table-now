@@ -82,10 +82,12 @@ type ConfigState = {
   categories: Category[];
   dishes: Dish[];
   formulas: Formula[];
+  lastImportUrl?: string;
 
   setRestaurantName: (n: string) => void;
   setLogo: (logo?: string) => void;
   setTimezone: (tz: string) => void;
+  setLastImportUrl: (url?: string) => void;
 
   addTable: (name: string) => void;
   removeTable: (name: string) => void;
@@ -150,6 +152,7 @@ export const useConfig = create<ConfigState>()(
       setRestaurantName: (n) => set({ restaurantName: n }),
       setLogo: (logo) => set({ logo }),
       setTimezone: (tz) => set({ timezone: tz }),
+      setLastImportUrl: (url) => set({ lastImportUrl: url }),
 
       addTable: (name) =>
         set((s) => (s.tables.includes(name) ? {} : { tables: [...s.tables, name] })),
