@@ -131,11 +131,11 @@ export const scrapeMenu = createServerFn({ method: "POST" })
           {
             role: "system",
             content:
-              "You extract restaurant menus from markdown. Return STRICT JSON matching the provided tool schema. Include EVERY dish present, do not skip any. Prices are in EUROS as numbers (e.g. 12.5), never strings, never cents. Group by category (the menu section header). If a dish has no description, use empty string.",
+              "You extract restaurant menus from markdown. Return STRICT JSON matching the provided tool schema. Include EVERY dish present, do not skip any. Prices are in EUROS as numbers (e.g. 12.5), never strings, never cents. Group by category (the menu section header). If a dish has no description, use empty string. IMAGES: markdown contains images as ![alt](url). For each dish, set `photo` to the absolute URL of the image visually attached to it (typically the image immediately preceding or following the dish name in the markdown). Prefer Uber Eats CDN URLs (containing tb-static.uber.com, cn-geo1.uber.com, d1ralsognjng37.cloudfront.net, or similar). Skip logos, banners, icons, profile photos and any image whose URL contains `logo`, `banner`, `icon`, `avatar`, or is smaller than a typical dish thumbnail. If no dish image is clearly attached, leave `photo` empty (do not invent URLs).",
           },
           {
             role: "user",
-            content: `Extract ALL dishes from this restaurant menu page.\n\nPage title: ${pageTitle ?? ""}\n\nMARKDOWN:\n${content}`,
+            content: `Extract ALL dishes (with their photo URLs) from this restaurant menu page.\n\nPage title: ${pageTitle ?? ""}\n\nMARKDOWN:\n${content}`,
           },
         ],
         tools: [
