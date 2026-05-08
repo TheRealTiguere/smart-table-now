@@ -5,14 +5,23 @@ import { useConfig } from "@/lib/config-store";
 import { X, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+type DupStrategy = "ignore" | "replace";
+
 export function ImportMenuModal({ onClose }: { onClose: () => void }) {
   const scrape = useServerFn(scrapeMenu);
-  const { categories, addCategory, addDish } = useConfig();
+  const { categories, dishes, addCategory, addDish, updateDish } = useConfig();
 
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [dupStrategy, setDupStrategy] = useState<DupStrategy>("ignore");
+
+  // Map name|price → existing dish id (case-insensitive name, price rounded to 2dp)
+  const dupKey = (name: string, price: number) =>
+    `${name.trim().toLowerCase()}|${(Math.round(price * 100) / 100).toFixed(2)}`;
+  const existingByKey = new Map(dishes.map((d) => [dupKey(d.name, d.price), d.id]));
+  const findDup = (d: ScrapedDish) => existingByKey.get(dupKey(d.name, d.price));
 
   async function handleScrape(e: React.FormEvent) {
     e.preventDefault();
