@@ -120,7 +120,7 @@ function Dashboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Pilotage</p>
-            <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">Bonsoir, Marco.</h1>
+            <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">Bonsoir{me?.username ? `, ${me.username}` : ""}.</h1>
             <p className="mt-2 text-[15px] text-muted-foreground">Voici votre service en un coup d'œil.</p>
           </div>
           <div className="flex gap-2">
